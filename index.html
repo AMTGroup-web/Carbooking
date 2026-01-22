@@ -612,9 +612,10 @@
                         const now = new Date();
                         const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-                        // ถ้าเลือกวันย้อนหลัง ให้รีเซ็ตเป็นวันนี้
+                        // ถ้าเลือกวันย้อนหลัง ให้แจ้งเตือนและรีเซ็ตเป็นวันนี้
                         if (newVal < todayStr) {
                             console.log('⚠️ Start date is in the past, resetting to today');
+                            alert('❌ ไม่สามารถเลือกวันย้อนหลังได้\nกรุณาเลือกวันที่ปัจจุบันหรืออนาคต');
                             form.start = todayStr;
                             return;
                         }
@@ -628,10 +629,11 @@
                         const now = new Date();
                         const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-                        // ถ้าเลือกวันย้อนหลัง ให้รีเซ็ตเป็นวันนี้หรือ start date
+                        // ถ้าเลือกวันย้อนหลัง ให้แจ้งเตือนและรีเซ็ตเป็นวันนี้หรือ start date
                         const minEndDate = form.start || todayStr;
                         if (newVal < minEndDate) {
                             console.log('⚠️ End date is before start date, resetting');
+                            alert('❌ วันคืนรถต้องไม่น้อยกว่าวันรับรถ\nกรุณาเลือกใหม่');
                             form.end = minEndDate;
                             return;
                         }
