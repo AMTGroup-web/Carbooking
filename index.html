@@ -23,6 +23,36 @@
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+    <!-- Firebase SDK (Compat version for global access) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDKnLLu2TxskF1oVoJOYwrd4MtXW26VsBc",
+            authDomain: "carbbooking.firebaseapp.com",
+            databaseURL: "https://carbbooking-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "carbbooking",
+            storageBucket: "carbbooking.firebasestorage.app",
+            messagingSenderId: "889535468734",
+            appId: "1:889535468734:web:df5f7fd479283d927b7aef",
+            measurementId: "G-R6CESPWH25"
+        };
+
+        // Initialize Firebase
+        const firebaseApp = firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // Expose to global scope for Vue.js usage
+        window.firebaseDB = database;
+        window.firebaseRef = (db, path) => db.ref(path);
+        window.firebasePush = (ref, data) => ref.push(data);
+        window.firebaseSet = (ref, data) => ref.set(data);
+        window.firebaseGet = (ref) => ref.once('value'); // For fetching data
+
+        console.log('✅ Firebase initialized successfully');
+    </script>
+
     <script>
         tailwind.config = {
             theme: {
@@ -149,7 +179,7 @@
                                     class="w-full h-full bg-white border border-slate-200 text-slate-700 text-sm rounded-xl focus:ring-0 block p-3 shadow-sm outline-none transition-all absolute inset-0 z-0">
 
                                 <!-- Native Picker (Invisible Overlay) -->
-                                <input type="date" v-model="form.start" :min="minDate"
+                                <input type="date" v-model="form.start" :min="minDate" @change="validateStartDate"
                                     class="w-full h-full opacity-0 absolute inset-0 z-10 cursor-pointer">
 
                                 <i
@@ -166,6 +196,7 @@
 
                                 <!-- Native Picker (Invisible Overlay) -->
                                 <input type="date" v-model="form.end" :min="form.start || minDate"
+                                    @change="validateEndDate"
                                     class="w-full h-full opacity-0 absolute inset-0 z-10 cursor-pointer">
 
                                 <i
@@ -400,24 +431,15 @@
     </div>
 
     <script>
-        const API_URL = 'https://script.google.com/macros/s/AKfycbxnun_T4TejdIOhXZD2WiTqDghKoJ2W3joDwqZmJpPwbdUGSRxXL1U-yPIP8WUwcQsvLQ/exec';
-        const WEBHOOK_URL = 'https://n8n-p2sw2ng.p2scalw2ng.xyz/webhook-test/1186661e-ed3f-4028-8bd7-c33eb6bae499'; // ใส่ Webhook URL ของคุณที่นี่
+        const API_URL = 'https://script.google.com/macros/s/AKfycbxrBmEkW479Om9E9aTFQIdiwiXjLTOSRf0YrCI3_dSRBbyu7XKlxvHH-NpmKn_ITURF/exec';
+        const WEBHOOK_URL = ''; // ปิด webhook ถ้าไม่ได้ใช้ n8n อีกต่อไป
 
         const { createApp, ref, computed, onMounted, reactive, watch } = Vue;
 
         createApp({
             setup() {
-                // Mock Data
-                const cars = [
-                    { id: 1, plate: 'ญช 908 กท', model: 'Cap', color: 'สีขาว', type: 'Fuel' },
-                    { id: 2, plate: 'ฎฮ 9043 กท', model: 'Optra', color: 'สีดำ', type: 'Fuel' },
-                    { id: 3, plate: '1ขท 3650 กท', model: 'Optra', color: 'สีเทา', type: 'Fuel' },
-                    { id: 4, plate: 'สท 4690 กท', model: 'Optra', color: 'สีขาว', type: 'Fuel' },
-                    { id: 5, plate: '3ขช 2404 กท', model: 'Optra', color: 'สีเงิน', type: 'Fuel' },
-                    { id: 6, plate: '3ขช 3222 กท', model: 'Cap', color: 'สีน้ำตาล', type: 'Fuel' },
-                    { id: 7, plate: 'บ 3004 กท', model: 'MG4', color: 'สีขาว', type: 'EV' },
-                    { id: 8, plate: 'ฮ 2227 กท', model: 'MG4', color: 'สีเทา', type: 'EV' }
-                ];
+                // Cars from Firebase (dynamic)
+                const cars = ref([]);
 
                 const liffReady = ref(false);
                 const currentTab = ref('booking');
@@ -427,6 +449,63 @@
                 const submitting = ref(false);
                 const showSuccess = ref(false);
                 const expandedCars = reactive({});
+
+                // Fetch cars from Firebase with retry
+                const fetchCarsFromFirebase = async (retryCount = 0) => {
+                    console.log('🚗 Fetching cars from Firebase... (attempt ' + (retryCount + 1) + ')');
+
+                    // Wait for Firebase to be ready (max 5 retries)
+                    if (!window.firebaseDB || !window.firebaseRef || !window.firebaseGet) {
+                        if (retryCount < 5) {
+                            console.log('⏳ Firebase not ready, retrying in 500ms...');
+                            setTimeout(() => fetchCarsFromFirebase(retryCount + 1), 500);
+                            return;
+                        }
+                        console.warn('❌ Firebase not ready after 5 retries, using fallback');
+                        cars.value = [
+                            { id: 1, plate: 'ญช 908 กท', model: 'Cap', color: 'สีขาว', type: 'Fuel' },
+                            { id: 2, plate: 'ฎฮ 9043 กท', model: 'Optra', color: 'สีดำ', type: 'Fuel' },
+                            { id: 3, plate: '1ขท 3650 กท', model: 'Optra', color: 'สีเทา', type: 'Fuel' },
+                            { id: 4, plate: 'สท 4690 กท', model: 'Optra', color: 'สีขาว', type: 'Fuel' },
+                            { id: 5, plate: '3ขช 2404 กท', model: 'Optra', color: 'สีเงิน', type: 'Fuel' },
+                            { id: 6, plate: '3ขช 3222 กท', model: 'Cap', color: 'สีน้ำตาล', type: 'Fuel' },
+                            { id: 7, plate: 'บ 3004 กท', model: 'MG4', color: 'สีขาว', type: 'EV' },
+                            { id: 8, plate: 'ฮ 2227 กท', model: 'MG4', color: 'สีเทา', type: 'EV' }
+                        ];
+                        return;
+                    }
+
+                    try {
+                        const carsRef = window.firebaseRef(window.firebaseDB, 'cars');
+                        const snapshot = await window.firebaseGet(carsRef);
+
+                        if (snapshot.exists()) {
+                            const data = snapshot.val();
+                            const carsArray = Object.keys(data)
+                                .filter(k => k !== '_placeholder')
+                                .map(k => ({ firebaseKey: k, ...data[k] }))
+                                .filter(c => c.active !== false) // Only active cars
+                                .sort((a, b) => (a.id || 0) - (b.id || 0));
+
+                            cars.value = carsArray;
+                            console.log('✅ Cars loaded from Firebase:', carsArray.length, carsArray.map(c => c.plate));
+                        } else {
+                            console.warn('No cars in Firebase, using fallback');
+                            cars.value = [
+                                { id: 1, plate: 'ญช 908 กท', model: 'Cap', color: 'สีขาว', type: 'Fuel' },
+                                { id: 2, plate: 'ฎฮ 9043 กท', model: 'Optra', color: 'สีดำ', type: 'Fuel' },
+                                { id: 3, plate: '1ขท 3650 กท', model: 'Optra', color: 'สีเทา', type: 'Fuel' },
+                                { id: 4, plate: 'สท 4690 กท', model: 'Optra', color: 'สีขาว', type: 'Fuel' },
+                                { id: 5, plate: '3ขช 2404 กท', model: 'Optra', color: 'สีเงิน', type: 'Fuel' },
+                                { id: 6, plate: '3ขช 3222 กท', model: 'Cap', color: 'สีน้ำตาล', type: 'Fuel' },
+                                { id: 7, plate: 'บ 3004 กท', model: 'MG4', color: 'สีขาว', type: 'EV' },
+                                { id: 8, plate: 'ฮ 2227 กท', model: 'MG4', color: 'สีเทา', type: 'EV' }
+                            ];
+                        }
+                    } catch (error) {
+                        console.error('❌ Fetch cars error:', error);
+                    }
+                };
 
                 const form = reactive({
                     username: '',
@@ -471,28 +550,93 @@
                     }
                 };
 
-                // Fetch Existing Bookings
+                // Fetch Existing Bookings from Firebase (faster than Google Sheets)
                 const fetchBookings = async () => {
-                    if (API_URL === 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') {
-                        console.warn('API URL not set, using mock data');
-                        exisingBookings.value = []; // Use empty or mock
-                        return;
-                    }
                     loadingBookings.value = true;
+                    console.log('🔥 Fetching bookings from Firebase...');
+
                     try {
-                        const res = await fetch(API_URL);
-                        const data = await res.json();
-                        exisingBookings.value = data;
+                        if (!window.firebaseDB || !window.firebaseRef) {
+                            console.error('❌ Firebase not initialized');
+                            exisingBookings.value = [];
+                            return;
+                        }
+
+                        const bookingsRef = window.firebaseRef(window.firebaseDB, 'bookings');
+                        const snapshot = await bookingsRef.once('value');
+
+                        if (snapshot.exists()) {
+                            const data = snapshot.val();
+                            // Convert Firebase object to array with carId mapping
+                            const bookingsArray = Object.keys(data).map(key => {
+                                const booking = data[key];
+                                return {
+                                    id: key,
+                                    bookingId: booking.bookingId || key,
+                                    userId: booking.userId,
+                                    user: booking.userName,
+                                    carPlate: booking.carPlate,
+                                    carModel: booking.carModel,
+                                    carId: booking.carId || mapPlateToId(booking.carPlate),
+                                    start: booking.startDate || booking.start,
+                                    end: booking.endDate || booking.end,
+                                    purpose: booking.combinedPurpose || booking.purpose,
+                                    status: booking.status || 'Pending'
+                                };
+                            });
+
+                            console.log('✅ Firebase bookings loaded:', bookingsArray.length);
+                            exisingBookings.value = bookingsArray;
+                        } else {
+                            console.log('ℹ️ No bookings in Firebase');
+                            exisingBookings.value = [];
+                        }
                     } catch (e) {
-                        console.error('Fetch error', e);
+                        console.error('❌ Firebase fetch error:', e);
+                        exisingBookings.value = [];
                     } finally {
                         loadingBookings.value = false;
                     }
                 };
 
-                // Watch Date Changes to refetch or just re-filter
-                watch(() => [form.start, form.end], () => {
-                    form.carId = null; // Reset selection on date change
+                // Helper: Map plate to car ID
+                const mapPlateToId = (plate) => {
+                    const car = cars.value.find(c => c.plate === plate);
+                    return car ? car.id : 0;
+                };
+
+                // Watch Date Changes - ตรวจสอบและรีเซ็ตวันที่ย้อนหลังอัตโนมัติ
+                watch(() => form.start, (newVal) => {
+                    if (newVal) {
+                        // คำนวณวันที่ปัจจุบัน (Local timezone)
+                        const now = new Date();
+                        const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+                        // ถ้าเลือกวันย้อนหลัง ให้รีเซ็ตเป็นวันนี้
+                        if (newVal < todayStr) {
+                            console.log('⚠️ Start date is in the past, resetting to today');
+                            form.start = todayStr;
+                            return;
+                        }
+                    }
+                    form.carId = null; // Reset car selection
+                });
+
+                watch(() => form.end, (newVal) => {
+                    if (newVal) {
+                        // คำนวณวันที่ปัจจุบัน (Local timezone)
+                        const now = new Date();
+                        const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+                        // ถ้าเลือกวันย้อนหลัง ให้รีเซ็ตเป็นวันนี้หรือ start date
+                        const minEndDate = form.start || todayStr;
+                        if (newVal < minEndDate) {
+                            console.log('⚠️ End date is before start date, resetting');
+                            form.end = minEndDate;
+                            return;
+                        }
+                    }
+                    form.carId = null; // Reset car selection
                 });
 
                 // Compute Available Cars
@@ -504,28 +648,44 @@
 
                     if (reqStart > reqEnd) return []; // Invalid range
 
-                    // Filter logic: Exclude cars that have overlapping bookings
+                    console.log('📅 Checking availability for:', form.start, 'to', form.end);
+                    console.log('📦 Total bookings loaded:', exisingBookings.value.length);
+
+                    // Filter logic: Exclude cars that have overlapping ACTIVE bookings
+                    // Only consider bookings with status: Approved or Pending
+                    // Ignore: Rejected, Returned, Cancelled
                     const busyCarIds = exisingBookings.value.filter(booking => {
-                        // Assuming booking.start and booking.end are 'YYYY-MM-DD' strings from sheet
-                        // or full ISOs. If strictly dates, adds T00/T23 to ensure overlap checks
-                        // If the backend stores rough strings, we try to parse them.
-                        // Ideally backend stores YYYY-MM-DD for date-only mode.
+                        // ✅ Only block cars for Active bookings (Approved or Pending)
+                        const status = (booking.status || 'Pending').toLowerCase();
+                        if (status === 'rejected' || status === 'returned' || status === 'cancelled') {
+                            return false; // Don't block for these statuses
+                        }
 
                         let bStartStr = booking.start;
                         let bEndStr = booking.end;
 
-                        // Handle potential ISO strings by taking just the date part if previously stored with time
-                        if (bStartStr.includes('T')) bStartStr = bStartStr.split('T')[0];
-                        if (bEndStr.includes('T')) bEndStr = bEndStr.split('T')[0];
+                        // Handle potential ISO strings by taking just the date part
+                        if (bStartStr && bStartStr.includes('T')) bStartStr = bStartStr.split('T')[0];
+                        if (bEndStr && bEndStr.includes('T')) bEndStr = bEndStr.split('T')[0];
+
+                        if (!bStartStr || !bEndStr) return false; // Invalid booking data
 
                         const bStart = new Date(bStartStr + 'T00:00:00');
                         const bEnd = new Date(bEndStr + 'T23:59:59');
 
                         // Standard Overlap: Range A overlaps Range B if StartA <= EndB AND EndA >= StartB
-                        return bStart <= reqEnd && bEnd >= reqStart;
+                        const overlaps = bStart <= reqEnd && bEnd >= reqStart;
+
+                        if (overlaps) {
+                            console.log('🚫 Conflict found:', booking.carId, booking.start, '-', booking.end, 'Status:', booking.status);
+                        }
+
+                        return overlaps;
                     }).map(b => parseInt(b.carId || 0)); // Ensure ID comparison
 
-                    return cars.filter(c => !busyCarIds.includes(c.id));
+                    console.log('🚗 Busy car IDs:', busyCarIds);
+
+                    return cars.value.filter(c => !busyCarIds.includes(c.id));
                 });
 
                 // Compute Schedule for all cars (Next 30 days)
@@ -535,7 +695,7 @@
                     const thirtyDaysLater = new Date(now);
                     thirtyDaysLater.setDate(now.getDate() + 30);
 
-                    return cars.map(car => {
+                    return cars.value.map(car => {
                         // Find bookings for this car in future
                         const carBookings = exisingBookings.value.filter(b => {
                             if (parseInt(b.carId) !== car.id) return false;
@@ -554,10 +714,29 @@
                     });
                 });
 
+                // ใช้วันที่ท้องถิ่น (Local timezone) แทน UTC
                 const minDate = computed(() => {
                     const now = new Date();
-                    return now.toISOString().split('T')[0];
+                    const year = now.getFullYear();
+                    const month = String(now.getMonth() + 1).padStart(2, '0');
+                    const day = String(now.getDate()).padStart(2, '0');
+                    return `${year}-${month}-${day}`;
                 });
+
+                // Validate start date - ป้องกันการเลือกวันย้อนหลัง
+                const validateStartDate = () => {
+                    if (form.start && form.start < minDate.value) {
+                        form.start = minDate.value;
+                    }
+                };
+
+                // Validate end date - ต้องไม่น้อยกว่า start และไม่น้อยกว่าวันปัจจุบัน
+                const validateEndDate = () => {
+                    const minEndDate = form.start || minDate.value;
+                    if (form.end && form.end < minEndDate) {
+                        form.end = minEndDate;
+                    }
+                };
 
                 const formatDate = (dateStr) => {
                     if (!dateStr) return '-';
@@ -589,7 +768,7 @@
                     if (!isValid.value) return;
                     submitting.value = true;
 
-                    const selectedCar = cars.find(c => c.id === form.carId);
+                    const selectedCar = cars.value.find(c => c.id === form.carId);
 
                     // Generate unique booking ID
                     const bookingId = `BK${Date.now()}-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
@@ -603,10 +782,12 @@
                         user: form.username,
                         carPlate: selectedCar.plate,
                         carModel: selectedCar.model,
+                        carColor: selectedCar.color, // เพิ่มสีรถ
                         carId: selectedCar.id,
                         start: form.start, // YYYY-MM-DD
                         end: form.end,     // YYYY-MM-DD
-                        purpose: combinedPurpose
+                        purpose: combinedPurpose,
+                        usageType: form.usageType // Send usage type for auto-approval
                     };
 
                     try {
@@ -667,9 +848,54 @@
                             }
                         }
 
+                        // ============================================
+                        // PUSH TO FIREBASE REALTIME DATABASE
+                        // ============================================
+                        console.log('🔥 Checking Firebase availability...');
+                        console.log('firebaseDB:', !!window.firebaseDB);
+                        console.log('firebasePush:', !!window.firebasePush);
+                        console.log('firebaseRef:', !!window.firebaseRef);
+
+                        if (window.firebaseDB && window.firebasePush && window.firebaseRef) {
+                            try {
+                                const firebaseData = {
+                                    bookingId: bookingId,
+                                    userId: profile.value?.userId || 'unknown',
+                                    userName: form.username,
+                                    userPicture: profile.value?.pictureUrl || '',
+                                    carId: selectedCar.id,
+                                    carPlate: selectedCar.plate,
+                                    carModel: selectedCar.model,
+                                    carColor: selectedCar.color,
+                                    carType: selectedCar.type,
+                                    startDate: form.start,
+                                    endDate: form.end,
+                                    usageType: form.usageType,
+                                    purpose: form.purpose,
+                                    combinedPurpose: combinedPurpose,
+                                    status: form.usageType === 'Work' ? 'Approved' : 'Pending',
+                                    createdAt: new Date().toISOString()
+                                };
+                                console.log('📤 Sending to Firebase:', firebaseData);
+
+                                const bookingsRef = window.firebaseRef(window.firebaseDB, 'bookings');
+                                await window.firebasePush(bookingsRef, firebaseData);
+                                console.log('✅ Firebase: Booking saved successfully');
+                                alert('✅ จองสำเร็จ! ข้อมูลถูกบันทึกแล้ว');
+                            } catch (firebaseError) {
+                                console.error('❌ Firebase error:', firebaseError);
+                                alert('❌ Firebase Error: ' + firebaseError.message);
+                                // Continue even if Firebase fails
+                            }
+                        } else {
+                            console.warn('⚠️ Firebase not available - data not saved to Firebase');
+                            alert('⚠️ Firebase ยังไม่พร้อม ข้อมูลอาจไม่ถูกบันทึก');
+                        }
+
                         showSuccess.value = true;
                     } catch (e) {
-                        alert('Submission failed');
+                        console.error('Submit error:', e);
+                        alert('Submission failed: ' + e.message);
                     } finally {
                         submitting.value = false;
                     }
@@ -685,6 +911,7 @@
 
                 onMounted(() => {
                     initLiff();
+                    fetchCarsFromFirebase(); // Load cars from Firebase
                     fetchBookings();
                 });
 
@@ -707,7 +934,9 @@
                     expandedCars,
                     toggleExpand,
                     minDate,
-                    formatDateDisplay
+                    formatDateDisplay,
+                    validateStartDate,
+                    validateEndDate
                 };
             }
         }).mount('#app');
