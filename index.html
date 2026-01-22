@@ -23,36 +23,6 @@
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <!-- Firebase SDK (Compat version for global access) -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
-    <script>
-        // Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyDKnLLu2TxskF1oVoJOYwrd4MtXW26VsBc",
-            authDomain: "carbbooking.firebaseapp.com",
-            databaseURL: "https://carbbooking-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "carbbooking",
-            storageBucket: "carbbooking.firebasestorage.app",
-            messagingSenderId: "889535468734",
-            appId: "1:889535468734:web:df5f7fd479283d927b7aef",
-            measurementId: "G-R6CESPWH25"
-  };
-
-        // Initialize Firebase
-        const firebaseApp = firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
-
-        // Expose to global scope for Vue.js usage
-        window.firebaseDB = database;
-        window.firebaseRef = (db, path) => db.ref(path);
-        window.firebasePush = (ref, data) => ref.push(data);
-        window.firebaseSet = (ref, data) => ref.set(data);
-        window.firebaseGet = (ref) => ref.once('value'); // For fetching data
-
-        console.log('✅ Firebase initialized successfully');
-    </script>
-
     <script>
         tailwind.config = {
             theme: {
@@ -430,15 +400,24 @@
     </div>
 
     <script>
-        const API_URL = 'https://script.google.com/macros/s/AKfycbxrBmEkW479Om9E9aTFQIdiwiXjLTOSRf0YrCI3_dSRBbyu7XKlxvHH-NpmKn_ITURF/exec';
-        const WEBHOOK_URL = ''; // ปิด webhook ถ้าไม่ได้ใช้ n8n อีกต่อไป
+        const API_URL = 'https://script.google.com/macros/s/AKfycbxnun_T4TejdIOhXZD2WiTqDghKoJ2W3joDwqZmJpPwbdUGSRxXL1U-yPIP8WUwcQsvLQ/exec';
+        const WEBHOOK_URL = 'https://n8n-p2sw2ng.p2scalw2ng.xyz/webhook-test/1186661e-ed3f-4028-8bd7-c33eb6bae499'; // ใส่ Webhook URL ของคุณที่นี่
 
         const { createApp, ref, computed, onMounted, reactive, watch } = Vue;
 
         createApp({
             setup() {
-                // Cars from Firebase (dynamic)
-                const cars = ref([]);
+                // Mock Data
+                const cars = [
+                    { id: 1, plate: 'ญช 908 กท', model: 'Cap', color: 'สีขาว', type: 'Fuel' },
+                    { id: 2, plate: 'ฎฮ 9043 กท', model: 'Optra', color: 'สีดำ', type: 'Fuel' },
+                    { id: 3, plate: '1ขท 3650 กท', model: 'Optra', color: 'สีเทา', type: 'Fuel' },
+                    { id: 4, plate: 'สท 4690 กท', model: 'Optra', color: 'สีขาว', type: 'Fuel' },
+                    { id: 5, plate: '3ขช 2404 กท', model: 'Optra', color: 'สีเงิน', type: 'Fuel' },
+                    { id: 6, plate: '3ขช 3222 กท', model: 'Cap', color: 'สีน้ำตาล', type: 'Fuel' },
+                    { id: 7, plate: 'บ 3004 กท', model: 'MG4', color: 'สีขาว', type: 'EV' },
+                    { id: 8, plate: 'ฮ 2227 กท', model: 'MG4', color: 'สีเทา', type: 'EV' }
+                ];
 
                 const liffReady = ref(false);
                 const currentTab = ref('booking');
@@ -448,63 +427,6 @@
                 const submitting = ref(false);
                 const showSuccess = ref(false);
                 const expandedCars = reactive({});
-
-                // Fetch cars from Firebase with retry
-                const fetchCarsFromFirebase = async (retryCount = 0) => {
-                    console.log('🚗 Fetching cars from Firebase... (attempt ' + (retryCount + 1) + ')');
-
-                    // Wait for Firebase to be ready (max 5 retries)
-                    if (!window.firebaseDB || !window.firebaseRef || !window.firebaseGet) {
-                        if (retryCount < 5) {
-                            console.log('⏳ Firebase not ready, retrying in 500ms...');
-                            setTimeout(() => fetchCarsFromFirebase(retryCount + 1), 500);
-                            return;
-                        }
-                        console.warn('❌ Firebase not ready after 5 retries, using fallback');
-                        cars.value = [
-                            { id: 1, plate: 'ญช 908 กท', model: 'Cap', color: 'สีขาว', type: 'Fuel' },
-                            { id: 2, plate: 'ฎฮ 9043 กท', model: 'Optra', color: 'สีดำ', type: 'Fuel' },
-                            { id: 3, plate: '1ขท 3650 กท', model: 'Optra', color: 'สีเทา', type: 'Fuel' },
-                            { id: 4, plate: 'สท 4690 กท', model: 'Optra', color: 'สีขาว', type: 'Fuel' },
-                            { id: 5, plate: '3ขช 2404 กท', model: 'Optra', color: 'สีเงิน', type: 'Fuel' },
-                            { id: 6, plate: '3ขช 3222 กท', model: 'Cap', color: 'สีน้ำตาล', type: 'Fuel' },
-                            { id: 7, plate: 'บ 3004 กท', model: 'MG4', color: 'สีขาว', type: 'EV' },
-                            { id: 8, plate: 'ฮ 2227 กท', model: 'MG4', color: 'สีเทา', type: 'EV' }
-                        ];
-                        return;
-                    }
-
-                    try {
-                        const carsRef = window.firebaseRef(window.firebaseDB, 'cars');
-                        const snapshot = await window.firebaseGet(carsRef);
-
-                        if (snapshot.exists()) {
-                            const data = snapshot.val();
-                            const carsArray = Object.keys(data)
-                                .filter(k => k !== '_placeholder')
-                                .map(k => ({ firebaseKey: k, ...data[k] }))
-                                .filter(c => c.active !== false) // Only active cars
-                                .sort((a, b) => (a.id || 0) - (b.id || 0));
-
-                            cars.value = carsArray;
-                            console.log('✅ Cars loaded from Firebase:', carsArray.length, carsArray.map(c => c.plate));
-                        } else {
-                            console.warn('No cars in Firebase, using fallback');
-                            cars.value = [
-                                { id: 1, plate: 'ญช 908 กท', model: 'Cap', color: 'สีขาว', type: 'Fuel' },
-                                { id: 2, plate: 'ฎฮ 9043 กท', model: 'Optra', color: 'สีดำ', type: 'Fuel' },
-                                { id: 3, plate: '1ขท 3650 กท', model: 'Optra', color: 'สีเทา', type: 'Fuel' },
-                                { id: 4, plate: 'สท 4690 กท', model: 'Optra', color: 'สีขาว', type: 'Fuel' },
-                                { id: 5, plate: '3ขช 2404 กท', model: 'Optra', color: 'สีเงิน', type: 'Fuel' },
-                                { id: 6, plate: '3ขช 3222 กท', model: 'Cap', color: 'สีน้ำตาล', type: 'Fuel' },
-                                { id: 7, plate: 'บ 3004 กท', model: 'MG4', color: 'สีขาว', type: 'EV' },
-                                { id: 8, plate: 'ฮ 2227 กท', model: 'MG4', color: 'สีเทา', type: 'EV' }
-                            ];
-                        }
-                    } catch (error) {
-                        console.error('❌ Fetch cars error:', error);
-                    }
-                };
 
                 const form = reactive({
                     username: '',
@@ -549,59 +471,23 @@
                     }
                 };
 
-                // Fetch Existing Bookings from Firebase (faster than Google Sheets)
+                // Fetch Existing Bookings
                 const fetchBookings = async () => {
+                    if (API_URL === 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') {
+                        console.warn('API URL not set, using mock data');
+                        exisingBookings.value = []; // Use empty or mock
+                        return;
+                    }
                     loadingBookings.value = true;
-                    console.log('🔥 Fetching bookings from Firebase...');
-
                     try {
-                        if (!window.firebaseDB || !window.firebaseRef) {
-                            console.error('❌ Firebase not initialized');
-                            exisingBookings.value = [];
-                            return;
-                        }
-
-                        const bookingsRef = window.firebaseRef(window.firebaseDB, 'bookings');
-                        const snapshot = await bookingsRef.once('value');
-
-                        if (snapshot.exists()) {
-                            const data = snapshot.val();
-                            // Convert Firebase object to array with carId mapping
-                            const bookingsArray = Object.keys(data).map(key => {
-                                const booking = data[key];
-                                return {
-                                    id: key,
-                                    bookingId: booking.bookingId || key,
-                                    userId: booking.userId,
-                                    user: booking.userName,
-                                    carPlate: booking.carPlate,
-                                    carModel: booking.carModel,
-                                    carId: booking.carId || mapPlateToId(booking.carPlate),
-                                    start: booking.startDate || booking.start,
-                                    end: booking.endDate || booking.end,
-                                    purpose: booking.combinedPurpose || booking.purpose,
-                                    status: booking.status || 'Pending'
-                                };
-                            });
-
-                            console.log('✅ Firebase bookings loaded:', bookingsArray.length);
-                            exisingBookings.value = bookingsArray;
-                        } else {
-                            console.log('ℹ️ No bookings in Firebase');
-                            exisingBookings.value = [];
-                        }
+                        const res = await fetch(API_URL);
+                        const data = await res.json();
+                        exisingBookings.value = data;
                     } catch (e) {
-                        console.error('❌ Firebase fetch error:', e);
-                        exisingBookings.value = [];
+                        console.error('Fetch error', e);
                     } finally {
                         loadingBookings.value = false;
                     }
-                };
-
-                // Helper: Map plate to car ID
-                const mapPlateToId = (plate) => {
-                    const car = cars.value.find(c => c.plate === plate);
-                    return car ? car.id : 0;
                 };
 
                 // Watch Date Changes to refetch or just re-filter
@@ -618,44 +504,28 @@
 
                     if (reqStart > reqEnd) return []; // Invalid range
 
-                    console.log('📅 Checking availability for:', form.start, 'to', form.end);
-                    console.log('📦 Total bookings loaded:', exisingBookings.value.length);
-
-                    // Filter logic: Exclude cars that have overlapping ACTIVE bookings
-                    // Only consider bookings with status: Approved or Pending
-                    // Ignore: Rejected, Returned, Cancelled
+                    // Filter logic: Exclude cars that have overlapping bookings
                     const busyCarIds = exisingBookings.value.filter(booking => {
-                        // ✅ Only block cars for Active bookings (Approved or Pending)
-                        const status = (booking.status || 'Pending').toLowerCase();
-                        if (status === 'rejected' || status === 'returned' || status === 'cancelled') {
-                            return false; // Don't block for these statuses
-                        }
+                        // Assuming booking.start and booking.end are 'YYYY-MM-DD' strings from sheet
+                        // or full ISOs. If strictly dates, adds T00/T23 to ensure overlap checks
+                        // If the backend stores rough strings, we try to parse them.
+                        // Ideally backend stores YYYY-MM-DD for date-only mode.
 
                         let bStartStr = booking.start;
                         let bEndStr = booking.end;
 
-                        // Handle potential ISO strings by taking just the date part
-                        if (bStartStr && bStartStr.includes('T')) bStartStr = bStartStr.split('T')[0];
-                        if (bEndStr && bEndStr.includes('T')) bEndStr = bEndStr.split('T')[0];
-
-                        if (!bStartStr || !bEndStr) return false; // Invalid booking data
+                        // Handle potential ISO strings by taking just the date part if previously stored with time
+                        if (bStartStr.includes('T')) bStartStr = bStartStr.split('T')[0];
+                        if (bEndStr.includes('T')) bEndStr = bEndStr.split('T')[0];
 
                         const bStart = new Date(bStartStr + 'T00:00:00');
                         const bEnd = new Date(bEndStr + 'T23:59:59');
 
                         // Standard Overlap: Range A overlaps Range B if StartA <= EndB AND EndA >= StartB
-                        const overlaps = bStart <= reqEnd && bEnd >= reqStart;
-
-                        if (overlaps) {
-                            console.log('🚫 Conflict found:', booking.carId, booking.start, '-', booking.end, 'Status:', booking.status);
-                        }
-
-                        return overlaps;
+                        return bStart <= reqEnd && bEnd >= reqStart;
                     }).map(b => parseInt(b.carId || 0)); // Ensure ID comparison
 
-                    console.log('🚗 Busy car IDs:', busyCarIds);
-
-                    return cars.value.filter(c => !busyCarIds.includes(c.id));
+                    return cars.filter(c => !busyCarIds.includes(c.id));
                 });
 
                 // Compute Schedule for all cars (Next 30 days)
@@ -665,7 +535,7 @@
                     const thirtyDaysLater = new Date(now);
                     thirtyDaysLater.setDate(now.getDate() + 30);
 
-                    return cars.value.map(car => {
+                    return cars.map(car => {
                         // Find bookings for this car in future
                         const carBookings = exisingBookings.value.filter(b => {
                             if (parseInt(b.carId) !== car.id) return false;
@@ -719,7 +589,7 @@
                     if (!isValid.value) return;
                     submitting.value = true;
 
-                    const selectedCar = cars.value.find(c => c.id === form.carId);
+                    const selectedCar = cars.find(c => c.id === form.carId);
 
                     // Generate unique booking ID
                     const bookingId = `BK${Date.now()}-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
@@ -733,12 +603,10 @@
                         user: form.username,
                         carPlate: selectedCar.plate,
                         carModel: selectedCar.model,
-                        carColor: selectedCar.color, // เพิ่มสีรถ
                         carId: selectedCar.id,
                         start: form.start, // YYYY-MM-DD
                         end: form.end,     // YYYY-MM-DD
-                        purpose: combinedPurpose,
-                        usageType: form.usageType // Send usage type for auto-approval
+                        purpose: combinedPurpose
                     };
 
                     try {
@@ -799,54 +667,9 @@
                             }
                         }
 
-                        // ============================================
-                        // PUSH TO FIREBASE REALTIME DATABASE
-                        // ============================================
-                        console.log('🔥 Checking Firebase availability...');
-                        console.log('firebaseDB:', !!window.firebaseDB);
-                        console.log('firebasePush:', !!window.firebasePush);
-                        console.log('firebaseRef:', !!window.firebaseRef);
-
-                        if (window.firebaseDB && window.firebasePush && window.firebaseRef) {
-                            try {
-                                const firebaseData = {
-                                    bookingId: bookingId,
-                                    userId: profile.value?.userId || 'unknown',
-                                    userName: form.username,
-                                    userPicture: profile.value?.pictureUrl || '',
-                                    carId: selectedCar.id,
-                                    carPlate: selectedCar.plate,
-                                    carModel: selectedCar.model,
-                                    carColor: selectedCar.color,
-                                    carType: selectedCar.type,
-                                    startDate: form.start,
-                                    endDate: form.end,
-                                    usageType: form.usageType,
-                                    purpose: form.purpose,
-                                    combinedPurpose: combinedPurpose,
-                                    status: form.usageType === 'Work' ? 'Approved' : 'Pending',
-                                    createdAt: new Date().toISOString()
-                                };
-                                console.log('📤 Sending to Firebase:', firebaseData);
-
-                                const bookingsRef = window.firebaseRef(window.firebaseDB, 'bookings');
-                                await window.firebasePush(bookingsRef, firebaseData);
-                                console.log('✅ Firebase: Booking saved successfully');
-                                alert('✅ จองสำเร็จ! ข้อมูลถูกบันทึกแล้ว');
-                            } catch (firebaseError) {
-                                console.error('❌ Firebase error:', firebaseError);
-                                alert('❌ Firebase Error: ' + firebaseError.message);
-                                // Continue even if Firebase fails
-                            }
-                        } else {
-                            console.warn('⚠️ Firebase not available - data not saved to Firebase');
-                            alert('⚠️ Firebase ยังไม่พร้อม ข้อมูลอาจไม่ถูกบันทึก');
-                        }
-
                         showSuccess.value = true;
                     } catch (e) {
-                        console.error('Submit error:', e);
-                        alert('Submission failed: ' + e.message);
+                        alert('Submission failed');
                     } finally {
                         submitting.value = false;
                     }
@@ -862,7 +685,6 @@
 
                 onMounted(() => {
                     initLiff();
-                    fetchCarsFromFirebase(); // Load cars from Firebase
                     fetchBookings();
                 });
 
