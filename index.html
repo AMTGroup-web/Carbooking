@@ -5,29 +5,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Company Car Booking</title>
-
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- Fonts -->
-    <link
-        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Bai+Jamjuree:wght@300;400;500;600;700&display=swap"
-        rel="stylesheet">
-
-    <!-- Vue 3 -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Bai+Jamjuree:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-
-    <!-- LINE LIFF SDK -->
     <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-
-    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-    <!-- Firebase SDK (Compat version for global access) -->
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
     <script>
-        // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyDKnLLu2TxskF1oVoJOYwrd4MtXW26VsBc",
             authDomain: "carbbooking.firebaseapp.com",
@@ -38,911 +23,646 @@
             appId: "1:889535468734:web:df5f7fd479283d927b7aef",
             measurementId: "G-R6CESPWH25"
         };
-
-        // Initialize Firebase
         const firebaseApp = firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
-
-        // Expose to global scope for Vue.js usage
         window.firebaseDB = database;
         window.firebaseRef = (db, path) => db.ref(path);
         window.firebasePush = (ref, data) => ref.push(data);
         window.firebaseSet = (ref, data) => ref.set(data);
-        window.firebaseGet = (ref) => ref.once('value'); // For fetching data
-
+        window.firebaseGet = (ref) => ref.once('value');
         console.log('✅ Firebase initialized successfully');
     </script>
-
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     fontFamily: {
-                        sans: ['"Bai Jamjuree"', 'sans-serif'], // Thai friendly font
+                        sans: ['"Bai Jamjuree"', 'sans-serif'],
                         heading: ['"Outfit"', 'sans-serif'],
                     },
                     colors: {
-                        brand: {
-                            50: '#f0f9ff',
-                            100: '#e0f2fe',
-                            500: '#0ea5e9', // Sky blue
-                            600: '#0284c7',
-                            900: '#0c4a6e',
-                        },
-                        accent: {
-                            500: '#6366f1', // Indigo
-                        }
+                        brand: { 50: '#f0f9ff', 100: '#e0f2fe', 500: '#0ea5e9', 600: '#0284c7', 900: '#0c4a6e' },
+                        accent: { 500: '#6366f1' }
                     }
                 }
             }
         }
     </script>
     <style>
-        body {
-            background-color: #f8fafc;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .glass-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-        }
-
-        /* Hide scrollbar for car list */
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
+        body { background-color: #f8fafc; -webkit-tap-highlight-color: transparent; }
+        .glass-card { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 
 <body class="text-slate-800 antialiased h-screen flex flex-col">
+<div id="app" class="flex-1 flex flex-col max-w-md mx-auto w-full bg-slate-50 relative h-full">
 
-    <div id="app" class="flex-1 flex flex-col max-w-md mx-auto w-full bg-slate-50 relative h-full">
-
-        <!-- Header -->
-        <header
-            class="bg-white/80 backdrop-blur-md sticky top-0 z-20 px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-            <div>
-                <h1 class="font-heading text-xl font-bold text-slate-800">Reservation</h1>
-                <p class="text-xs text-slate-500 font-medium">จองรถบริษัท</p>
+    <!-- Header -->
+    <header class="bg-white/80 backdrop-blur-md sticky top-0 z-20 px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+        <div>
+            <h1 class="font-heading text-xl font-bold text-slate-800">Reservation</h1>
+            <p class="text-xs text-slate-500 font-medium">จองรถบริษัท</p>
+        </div>
+        <div v-if="profile" class="flex items-center gap-3">
+            <div class="text-right hidden sm:block">
+                <p class="text-sm font-bold text-slate-700">{{ profile.displayName }}</p>
+                <p class="text-[10px] text-green-500 font-semibold uppercase tracking-wider">Online</p>
             </div>
-            <div v-if="profile" class="flex items-center gap-3">
-                <div class="text-right hidden sm:block">
-                    <p class="text-sm font-bold text-slate-700">{{ profile.displayName }}</p>
-                    <p class="text-[10px] text-green-500 font-semibold uppercase tracking-wider">Online</p>
+            <img :src="profile.pictureUrl" alt="Profile" class="w-10 h-10 rounded-full border-2 border-white shadow-sm object-cover">
+        </div>
+        <div v-else class="w-10 h-10 rounded-full bg-slate-200 animate-pulse"></div>
+    </header>
+
+    <!-- Bottom Navigation -->
+    <nav class="bg-white border-t border-slate-200 fixed bottom-0 left-0 right-0 z-40 flex justify-around items-center h-20 pb-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+        <button @click="currentTab = 'booking'" :class="['flex-1 flex flex-col items-center justify-center gap-1 h-full', currentTab === 'booking' ? 'text-brand-600' : 'text-slate-400']">
+            <i class="fa-solid fa-calendar-plus text-xl mb-1"></i>
+            <span class="text-[10px] font-bold tracking-wide">จองรถ</span>
+        </button>
+        <button @click="currentTab = 'schedule'" :class="['flex-1 flex flex-col items-center justify-center gap-1 h-full', currentTab === 'schedule' ? 'text-brand-600' : 'text-slate-400']">
+            <i class="fa-solid fa-calendar-days text-xl mb-1"></i>
+            <span class="text-[10px] font-bold tracking-wide">ตารางรถ</span>
+        </button>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto p-6 space-y-6 pb-28">
+
+        <div v-if="!liffReady" class="flex flex-col items-center justify-center py-10 space-y-4">
+            <div class="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
+            <p class="text-sm text-slate-400">Connecting to LINE...</p>
+        </div>
+
+        <!-- VIEW: BOOKING FORM -->
+        <div v-else-if="currentTab === 'booking'">
+            <section class="space-y-4 mb-6">
+                <div class="flex items-center gap-2 mb-2">
+                    <i class="fa-solid fa-user-pen text-brand-500"></i>
+                    <h2 class="text-sm font-bold text-slate-700 tracking-wide uppercase">ชื่อผู้จอง</h2>
                 </div>
-                <img :src="profile.pictureUrl" alt="Profile"
-                    class="w-10 h-10 rounded-full border-2 border-white shadow-sm object-cover">
-            </div>
-            <div v-else class="w-10 h-10 rounded-full bg-slate-200 animate-pulse"></div>
-        </header>
+                <input type="text" v-model="form.username" placeholder="ระบุชื่อผู้จอง..."
+                    class="w-full bg-white border border-slate-200 text-slate-700 text-sm rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent block p-3 shadow-sm outline-none transition-all">
+            </section>
 
-        <!-- Bottom Navigation -->
-        <nav
-            class="bg-white border-t border-slate-200 fixed bottom-0 left-0 right-0 z-40 flex justify-around items-center h-20 pb-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-            <button @click="currentTab = 'booking'"
-                :class="['flex-1 flex flex-col items-center justify-center gap-1 h-full', currentTab === 'booking' ? 'text-brand-600' : 'text-slate-400']">
-                <i class="fa-solid fa-calendar-plus text-xl mb-1"></i>
-                <span class="text-[10px] font-bold tracking-wide">จองรถ</span>
-            </button>
-            <button @click="currentTab = 'schedule'"
-                :class="['flex-1 flex flex-col items-center justify-center gap-1 h-full', currentTab === 'schedule' ? 'text-brand-600' : 'text-slate-400']">
-                <i class="fa-solid fa-calendar-days text-xl mb-1"></i>
-                <span class="text-[10px] font-bold tracking-wide">ตารางรถ</span>
-            </button>
-        </nav>
-
-        <!-- Main Content (Scrollable) -->
-        <main class="flex-1 overflow-y-auto p-6 space-y-6 pb-28">
-
-            <!-- Welcome / Status -->
-            <div v-if="!liffReady" class="flex flex-col items-center justify-center py-10 space-y-4">
-                <div class="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
-                <p class="text-sm text-slate-400">Connecting to LINE...</p>
-            </div>
-
-            <!-- VIEW: BOOKING FORM -->
-            <div v-else-if="currentTab === 'booking'">
-                <!-- Section: User Name -->
-                <section class="space-y-4 mb-6">
-                    <div class="flex items-center gap-2 mb-2">
-                        <i class="fa-solid fa-user-pen text-brand-500"></i>
-                        <h2 class="text-sm font-bold text-slate-700 tracking-wide uppercase">ชื่อผู้จอง</h2>
+            <section class="space-y-4">
+                <div class="flex items-center gap-2 mb-2">
+                    <i class="fa-regular fa-calendar-check text-brand-500"></i>
+                    <h2 class="text-sm font-bold text-slate-700 tracking-wide uppercase">ระบุวันที่ใช้รถ</h2>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="space-y-1">
+                        <label class="text-xs font-semibold text-slate-500">รับรถ (dd/mm/yyyy)</label>
+                        <div class="relative w-full h-[46px]">
+                            <input type="text" :value="formatDateDisplay(form.start)" placeholder="dd/mm/yyyy" readonly class="w-full h-full bg-white border border-slate-200 text-slate-700 text-sm rounded-xl focus:ring-0 block p-3 shadow-sm outline-none transition-all absolute inset-0 z-0">
+                            <input type="date" v-model="form.start" :min="minDate" @change="validateStartDate" class="w-full h-full opacity-0 absolute inset-0 z-10 cursor-pointer">
+                            <i class="fa-regular fa-calendar-days text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 z-0"></i>
+                        </div>
                     </div>
                     <div class="space-y-1">
-                        <input type="text" v-model="form.username" placeholder="ระบุชื่อผู้จอง..."
-                            class="w-full bg-white border border-slate-200 text-slate-700 text-sm rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent block p-3 shadow-sm outline-none transition-all">
-                    </div>
-                </section>
-
-                <!-- Section: Date Selection (No Time) -->
-                <section class="space-y-4">
-                    <div class="flex items-center gap-2 mb-2">
-                        <i class="fa-regular fa-calendar-check text-brand-500"></i>
-                        <h2 class="text-sm font-bold text-slate-700 tracking-wide uppercase">ระบุวันที่ใชรถ</h2>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-3">
-                        <div class="space-y-1">
-                            <label class="text-xs font-semibold text-slate-500">รับรถ (dd/mm/yyyy)</label>
-                            <div class="relative w-full h-[46px]">
-                                <!-- Display Input (Visual Only) -->
-                                <input type="text" :value="formatDateDisplay(form.start)" placeholder="dd/mm/yyyy"
-                                    readonly
-                                    class="w-full h-full bg-white border border-slate-200 text-slate-700 text-sm rounded-xl focus:ring-0 block p-3 shadow-sm outline-none transition-all absolute inset-0 z-0">
-
-                                <!-- Native Picker (Invisible Overlay) -->
-                                <input type="date" v-model="form.start" :min="minDate" @change="validateStartDate"
-                                    class="w-full h-full opacity-0 absolute inset-0 z-10 cursor-pointer">
-
-                                <i
-                                    class="fa-regular fa-calendar-days text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 z-0"></i>
-                            </div>
-                        </div>
-                        <div class="space-y-1">
-                            <label class="text-xs font-semibold text-slate-500">คืนรถ (dd/mm/yyyy)</label>
-                            <div class="relative w-full h-[46px]">
-                                <!-- Display Input (Visual Only) -->
-                                <input type="text" :value="formatDateDisplay(form.end)" placeholder="dd/mm/yyyy"
-                                    readonly
-                                    class="w-full h-full bg-white border border-slate-200 text-slate-700 text-sm rounded-xl focus:ring-0 block p-3 shadow-sm outline-none transition-all absolute inset-0 z-0">
-
-                                <!-- Native Picker (Invisible Overlay) -->
-                                <input type="date" v-model="form.end" :min="form.start || minDate"
-                                    @change="validateEndDate"
-                                    class="w-full h-full opacity-0 absolute inset-0 z-10 cursor-pointer">
-
-                                <i
-                                    class="fa-regular fa-calendar-days text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 z-0"></i>
-                            </div>
+                        <label class="text-xs font-semibold text-slate-500">คืนรถ (dd/mm/yyyy)</label>
+                        <div class="relative w-full h-[46px]">
+                            <input type="text" :value="formatDateDisplay(form.end)" placeholder="dd/mm/yyyy" readonly class="w-full h-full bg-white border border-slate-200 text-slate-700 text-sm rounded-xl focus:ring-0 block p-3 shadow-sm outline-none transition-all absolute inset-0 z-0">
+                            <input type="date" v-model="form.end" :min="form.start || minDate" @change="validateEndDate" class="w-full h-full opacity-0 absolute inset-0 z-10 cursor-pointer">
+                            <i class="fa-regular fa-calendar-days text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 z-0"></i>
                         </div>
                     </div>
-                </section>
-
-                <!-- Section: Available Cars -->
-                <section class="mt-8 space-y-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <div class="flex items-center gap-2">
-                            <i class="fa-solid fa-car-side text-brand-500"></i>
-                            <h2 class="text-sm font-bold text-slate-700 tracking-wide uppercase">เลือกรถที่ว่าง</h2>
-                        </div>
-                        <span v-if="availableCars.length > 0"
-                            class="bg-brand-50 text-brand-600 text-[10px] font-bold px-2 py-1 rounded-full border border-brand-100">{{
-                            availableCars.length }} คัน</span>
-                    </div>
-
-                    <div v-if="!form.start || !form.end"
-                        class="p-6 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50">
-                        <i class="fa-regular fa-calendar text-slate-300 text-3xl mb-2"></i>
-                        <p class="text-sm text-slate-400">กรุณาเลือกวันที่รับและคืนรถ<br>เพื่อดูรถที่ว่าง</p>
-                    </div>
-
-                    <div v-else-if="loadingBookings" class="py-10 text-center">
-                        <i class="fa-solid fa-circle-notch fa-spin text-brand-500 text-xl"></i>
-                        <p class="text-xs text-slate-400 mt-2">Checking schedule...</p>
-                    </div>
-
-                    <div v-else-if="availableCars.length === 0"
-                        class="p-6 text-center border border-red-100 bg-red-50 rounded-2xl">
-                        <i class="fa-regular fa-face-frown text-red-400 text-2xl mb-2"></i>
-                        <p class="text-sm text-red-600 font-medium">ไม่พบรถว่างในช่วงเวลานี้</p>
-                        <p class="text-xs text-red-400">รถทุกคันถูกจองแล้ว</p>
-                    </div>
-
-                    <div v-else class="grid grid-cols-1 gap-3">
-                        <div v-for="car in availableCars" :key="car.id" @click="selectCar(car)" :class="['relative group cursor-pointer rounded-2xl p-4 border transition-all duration-200 ease-out flex items-center justify-between', 
-                                form.carId === car.id 
-                                ? 'bg-brand-50 border-brand-500 shadow-md ring-1 ring-brand-500' 
-                                : 'bg-white border-slate-200 shadow-sm hover:border-brand-300 hover:shadow-md']">
-                            <div class="flex items-center gap-4">
-                                <div
-                                    :class="['w-12 h-12 rounded-xl flex items-center justify-center text-xl shadow-inner', 
-                                    car.type === 'EV' ? 'bg-gradient-to-br from-emerald-100 to-emerald-200 text-emerald-600' : 'bg-gradient-to-br from-slate-100 to-slate-200 text-slate-500']">
-                                    <i :class="car.type === 'EV' ? 'fa-solid fa-bolt' : 'fa-solid fa-gas-pump'"></i>
-                                </div>
-                                <div>
-                                    <h3 class="font-bold text-slate-800 text-base font-heading">{{ car.model }}</h3>
-                                    <div class="flex items-center gap-2 text-xs text-slate-500">
-                                        <span
-                                            class="bg-slate-100 px-1.5 py-0.5 rounded text-[10px] font-mono tracking-wide text-slate-600 border border-slate-200">{{
-                                            car.plate }}</span>
-                                        <span class="w-1 h-1 rounded-full bg-slate-300"></span>
-                                        <span>{{ car.color }}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div v-if="form.carId === car.id" class="absolute top-4 right-4 text-brand-500">
-                                <i class="fa-solid fa-circle-check text-xl"></i>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Section: Purpose -->
-                <section class="mt-8 space-y-4" v-if="form.carId">
-                    <div class="flex items-center gap-2 mb-2">
-                        <i class="fa-solid fa-pen-to-square text-brand-500"></i>
-                        <h2 class="text-sm font-bold text-slate-700 tracking-wide uppercase">รายละเอียดการใช้</h2>
-                    </div>
-
-                    <!-- Usage Type Radio -->
-                    <div class="space-y-2 mb-4">
-                        <label class="text-xs font-semibold text-slate-500">ประเภทการใช้งาน</label>
-                        <div class="flex items-center gap-4">
-                            <label
-                                class="flex items-center gap-2 cursor-pointer bg-white border border-slate-200 rounded-xl px-4 py-3 flex-1 shadow-sm transition-all hover:border-brand-300"
-                                :class="{'ring-1 ring-brand-500 border-brand-500 bg-brand-50': form.usageType === 'Work'}">
-                                <div class="relative flex items-center">
-                                    <input type="radio" v-model="form.usageType" value="Work"
-                                        class="peer h-4 w-4 border-slate-300 text-brand-600 focus:ring-brand-500">
-                                </div>
-                                <span class="text-sm font-medium text-slate-700">ใช้ไปทำงาน</span>
-                            </label>
-
-                            <label
-                                class="flex items-center gap-2 cursor-pointer bg-white border border-slate-200 rounded-xl px-4 py-3 flex-1 shadow-sm transition-all hover:border-brand-300"
-                                :class="{'ring-1 ring-brand-500 border-brand-500 bg-brand-50': form.usageType === 'Personal'}">
-                                <div class="relative flex items-center">
-                                    <input type="radio" v-model="form.usageType" value="Personal"
-                                        class="peer h-4 w-4 border-slate-300 text-brand-600 focus:ring-brand-500">
-                                </div>
-                                <span class="text-sm font-medium text-slate-700">ส่วนตัว</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="space-y-1">
-                        <label class="text-xs font-semibold text-slate-500">รายละเอียด / สถานที่</label>
-                        <textarea v-model="form.purpose" rows="2" placeholder="ระบุสถานที่ หรือรายละเอียดเพิ่มเติม..."
-                            class="w-full bg-white border border-slate-200 text-slate-700 text-sm rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent block p-3 shadow-sm outline-none transition-all resize-none"></textarea>
-                    </div>
-                </section>
-
-                <!-- Submit Button Area (Only show in Booking Tab) -->
-                <div class="mt-8">
-                    <button @click="submitBooking" :disabled="!isValid" :class="['w-full py-4 rounded-xl font-bold text-sm tracking-wide shadow-lg flex items-center justify-center gap-2 transition-all',
-                            isValid 
-                            ? 'bg-brand-600 text-white shadow-brand-500/30 hover:bg-brand-700 hover:shadow-brand-500/40 active:scale-[0.98]' 
-                            : 'bg-slate-100 text-slate-400 cursor-not-allowed shadow-none']">
-                        <span v-if="submitting"><i
-                                class="fa-solid fa-circle-notch fa-spin mr-2"></i>Processing...</span>
-                        <span v-else>Confirm Booking</span>
-                    </button>
                 </div>
-            </div>
+            </section>
 
-            <!-- VIEW: SCHEDULE -->
-            <div v-else-if="currentTab === 'schedule'" class="space-y-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h2 class="font-heading text-lg font-bold text-slate-700">Car Schedule</h2>
-                        <p class="text-xs text-slate-400">เช็คตารางรถว่าง (Coming 30 Days)</p>
+            <section class="mt-8 space-y-4">
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-car-side text-brand-500"></i>
+                        <h2 class="text-sm font-bold text-slate-700 tracking-wide uppercase">เลือกรถที่ว่าง</h2>
                     </div>
-                    <button @click="fetchBookings"
-                        class="text-brand-500 text-sm hover:bg-brand-50 p-2 rounded-full transition-colors"><i
-                            :class="['fa-solid fa-rotate-right', loadingBookings ? 'fa-spin' : '']"></i></button>
+                    <span v-if="availableCars.length > 0" class="bg-brand-50 text-brand-600 text-[10px] font-bold px-2 py-1 rounded-full border border-brand-100">{{ availableCars.length }} คัน</span>
                 </div>
 
-                <div v-if="loadingBookings" class="py-10 text-center">
+                <div v-if="!form.start || !form.end" class="p-6 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50">
+                    <i class="fa-regular fa-calendar text-slate-300 text-3xl mb-2"></i>
+                    <p class="text-sm text-slate-400">กรุณาเลือกวันที่รับและคืนรถ<br>เพื่อดูรถที่ว่าง</p>
+                </div>
+                <div v-else-if="loadingBookings" class="py-10 text-center">
                     <i class="fa-solid fa-circle-notch fa-spin text-brand-500 text-xl"></i>
-                    <p class="text-xs text-slate-400 mt-2">Loading schedule...</p>
                 </div>
-
-                <div v-else class="space-y-4">
-                    <!-- Loop All Cars -->
-                    <div v-for="car in carsWithSchedule" :key="car.id"
-                        class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm transition-all">
-                        <!-- Car Header (Click to Expand) -->
-                        <div @click="toggleExpand(car.id)"
-                            class="p-4 flex items-center justify-between border-b border-slate-50 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors">
-                            <div class="flex items-center gap-4">
-                                <div
-                                    :class="['w-10 h-10 rounded-lg flex items-center justify-center text-lg shadow-inner', 
-                                    car.type === 'EV' ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-200 text-slate-500']">
-                                    <i :class="car.type === 'EV' ? 'fa-solid fa-bolt' : 'fa-solid fa-gas-pump'"></i>
-                                </div>
-                                <div>
-                                    <h3 class="font-bold text-slate-800 text-sm font-heading">{{ car.model }}</h3>
-                                    <div class="flex items-center gap-2">
-                                        <p
-                                            class="text-[10px] text-slate-500 font-mono bg-white inline-block px-1 rounded border border-slate-100">
-                                            {{ car.plate }}</p>
-                                        <span v-if="car.bookings.length > 0"
-                                            class="text-[10px] text-red-500 font-bold bg-red-50 px-1.5 py-0.5 rounded-full">{{
-                                            car.bookings.length }} จอง</span>
-                                        <span v-else
-                                            class="text-[10px] text-green-500 font-bold bg-green-50 px-1.5 py-0.5 rounded-full">ว่าง</span>
-                                    </div>
-                                </div>
+                <div v-else-if="availableCars.length === 0" class="p-6 text-center border border-red-100 bg-red-50 rounded-2xl">
+                    <i class="fa-regular fa-face-frown text-red-400 text-2xl mb-2"></i>
+                    <p class="text-sm text-red-600 font-medium">ไม่พบรถว่างในช่วงเวลานี้</p>
+                    <p class="text-xs text-red-400">รถทุกคันถูกจองแล้ว</p>
+                </div>
+                <div v-else class="grid grid-cols-1 gap-3">
+                    <div v-for="car in availableCars" :key="car.id" @click="selectCar(car)"
+                        :class="['relative group cursor-pointer rounded-2xl p-4 border transition-all duration-200 ease-out flex items-center justify-between',
+                            form.carId === car.id ? 'bg-brand-50 border-brand-500 shadow-md ring-1 ring-brand-500' : 'bg-white border-slate-200 shadow-sm hover:border-brand-300 hover:shadow-md']">
+                        <div class="flex items-center gap-4">
+                            <div :class="['w-12 h-12 rounded-xl flex items-center justify-center text-xl shadow-inner',
+                                car.type === 'EV' ? 'bg-gradient-to-br from-emerald-100 to-emerald-200 text-emerald-600' : 'bg-gradient-to-br from-slate-100 to-slate-200 text-slate-500']">
+                                <i :class="car.type === 'EV' ? 'fa-solid fa-bolt' : 'fa-solid fa-gas-pump'"></i>
                             </div>
-                            <div class="text-slate-400">
-                                <i
-                                    :class="['fa-solid transition-transform duration-300', expandedCars[car.id] ? 'fa-chevron-up' : 'fa-chevron-down']"></i>
+                            <div>
+                                <h3 class="font-bold text-slate-800 text-base font-heading">{{ car.model }}</h3>
+                                <div class="flex items-center gap-2 text-xs text-slate-500">
+                                    <span class="bg-slate-100 px-1.5 py-0.5 rounded text-[10px] font-mono tracking-wide text-slate-600 border border-slate-200">{{ car.plate }}</span>
+                                    <span class="w-1 h-1 rounded-full bg-slate-300"></span>
+                                    <span>{{ car.color }}</span>
+                                </div>
                             </div>
                         </div>
-
-                        <!-- Booking List (Collapsible) -->
-                        <div v-if="expandedCars[car.id]"
-                            class="p-4 border-t border-slate-100 bg-white animate-fade-in-down">
-                            <div v-if="car.bookings.length === 0"
-                                class="flex items-center gap-2 text-green-500 text-xs font-bold bg-green-50 p-3 rounded-lg border border-green-100">
-                                <i class="fa-regular fa-circle-check"></i>
-                                <span>ยังไม่มีการจอง</span>
-                            </div>
-                            <ul v-else class="space-y-2">
-                                <li v-for="booking in car.bookings" :key="booking.id" :class="['text-xs bg-slate-50 p-3 rounded-lg border-l-4 flex justify-between items-start',
-                                        booking.status === 'Approved' ? 'border-green-400' : 
-                                        booking.status === 'Rejected' ? 'border-red-400' : 
-                                        'border-yellow-400']">
-                                    <div>
-                                        <div class="font-bold text-slate-700">{{ formatDate(booking.start) }} - {{
-                                            formatDate(booking.end) }}</div>
-                                        <div class="text-slate-500 mt-1 flex items-center gap-2">
-                                            <span><i class="fa-solid fa-user text-[10px] mr-1"></i>{{ booking.user
-                                                }}</span>
-                                            <!-- Status Badge -->
-                                            <span :class="['px-1.5 py-0.5 rounded text-[10px] font-bold uppercase',
-                                                booking.status === 'Approved' ? 'bg-green-100 text-green-600' : 
-                                                booking.status === 'Rejected' ? 'bg-red-100 text-red-600' : 
-                                                'bg-yellow-100 text-yellow-600']">
-                                                {{ booking.status || 'Pending' }}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <span
-                                        class="text-[10px] bg-white border border-slate-200 px-2 py-1 rounded text-slate-500 max-w-[100px] truncate">{{
-                                        booking.purpose }}</span>
-                                </li>
-                            </ul>
+                        <div v-if="form.carId === car.id" class="absolute top-4 right-4 text-brand-500">
+                            <i class="fa-solid fa-circle-check text-xl"></i>
                         </div>
                     </div>
                 </div>
-            </div>
+            </section>
 
-        </main>
-
-        <!-- Success Modal -->
-        <div v-if="showSuccess"
-            class="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-6 animate-fade-in">
-            <div
-                class="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-sm text-center transform transition-all scale-100">
-                <div
-                    class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 text-green-500 text-3xl shadow-sm">
-                    <i class="fa-solid fa-check"></i>
+            <section class="mt-8 space-y-4" v-if="form.carId">
+                <div class="flex items-center gap-2 mb-2">
+                    <i class="fa-solid fa-pen-to-square text-brand-500"></i>
+                    <h2 class="text-sm font-bold text-slate-700 tracking-wide uppercase">รายละเอียดการใช้</h2>
                 </div>
-                <h3 class="text-xl font-heading font-bold text-slate-800 mb-2">Booking Confirmed!</h3>
-                <p class="text-sm text-slate-500 mb-8 leading-relaxed">
-                    จองรถสำเร็จแล้ว<br>ระบบได้บันทึกข้อมูลของคุณเรียบร้อย</p>
-                <button @click="closeWindow"
-                    class="w-full py-3 bg-slate-800 text-white rounded-xl font-bold text-sm hover:bg-slate-900 transition-colors">
-                    Close
+                <div class="space-y-2 mb-4">
+                    <label class="text-xs font-semibold text-slate-500">ประเภทการใช้งาน</label>
+                    <div class="flex items-center gap-4">
+                        <label class="flex items-center gap-2 cursor-pointer bg-white border border-slate-200 rounded-xl px-4 py-3 flex-1 shadow-sm transition-all hover:border-brand-300"
+                            :class="{'ring-1 ring-brand-500 border-brand-500 bg-brand-50': form.usageType === 'Work'}">
+                            <input type="radio" v-model="form.usageType" value="Work" class="peer h-4 w-4 border-slate-300 text-brand-600 focus:ring-brand-500">
+                            <span class="text-sm font-medium text-slate-700">ใช้ไปทำงาน</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer bg-white border border-slate-200 rounded-xl px-4 py-3 flex-1 shadow-sm transition-all hover:border-brand-300"
+                            :class="{'ring-1 ring-brand-500 border-brand-500 bg-brand-50': form.usageType === 'Personal'}">
+                            <input type="radio" v-model="form.usageType" value="Personal" class="peer h-4 w-4 border-slate-300 text-brand-600 focus:ring-brand-500">
+                            <span class="text-sm font-medium text-slate-700">ส่วนตัว</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xs font-semibold text-slate-500">รายละเอียด / สถานที่</label>
+                    <textarea v-model="form.purpose" rows="2" placeholder="ระบุสถานที่ หรือรายละเอียดเพิ่มเติม..."
+                        class="w-full bg-white border border-slate-200 text-slate-700 text-sm rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent block p-3 shadow-sm outline-none transition-all resize-none"></textarea>
+                </div>
+            </section>
+
+            <div class="mt-8">
+                <button @click="submitBooking" :disabled="!isValid"
+                    :class="['w-full py-4 rounded-xl font-bold text-sm tracking-wide shadow-lg flex items-center justify-center gap-2 transition-all',
+                        isValid ? 'bg-brand-600 text-white shadow-brand-500/30 hover:bg-brand-700 active:scale-[0.98]' : 'bg-slate-100 text-slate-400 cursor-not-allowed shadow-none']">
+                    <span v-if="submitting"><i class="fa-solid fa-circle-notch fa-spin mr-2"></i>Processing...</span>
+                    <span v-else>Confirm Booking</span>
                 </button>
             </div>
         </div>
 
+        <!-- VIEW: SCHEDULE -->
+        <div v-else-if="currentTab === 'schedule'" class="space-y-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="font-heading text-lg font-bold text-slate-700">Car Schedule</h2>
+                    <p class="text-xs text-slate-400">เช็คตารางรถว่าง (Coming 30 Days)</p>
+                </div>
+                <button @click="fetchBookings" class="text-brand-500 text-sm hover:bg-brand-50 p-2 rounded-full transition-colors">
+                    <i :class="['fa-solid fa-rotate-right', loadingBookings ? 'fa-spin' : '']"></i>
+                </button>
+            </div>
+
+            <div v-if="loadingBookings" class="py-10 text-center">
+                <i class="fa-solid fa-circle-notch fa-spin text-brand-500 text-xl"></i>
+            </div>
+
+            <div v-else class="space-y-4">
+                <div v-for="car in carsWithSchedule" :key="car.id" class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                    <div @click="toggleExpand(car.id)" class="p-4 flex items-center justify-between border-b border-slate-50 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors">
+                        <div class="flex items-center gap-4">
+                            <div :class="['w-10 h-10 rounded-lg flex items-center justify-center text-lg shadow-inner',
+                                car.type === 'EV' ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-200 text-slate-500']">
+                                <i :class="car.type === 'EV' ? 'fa-solid fa-bolt' : 'fa-solid fa-gas-pump'"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-slate-800 text-sm font-heading">{{ car.model }}</h3>
+                                <div class="flex items-center gap-2">
+                                    <p class="text-[10px] text-slate-500 font-mono bg-white inline-block px-1 rounded border border-slate-100">{{ car.plate }}</p>
+                                    <span v-if="car.bookings.length > 0" class="text-[10px] text-red-500 font-bold bg-red-50 px-1.5 py-0.5 rounded-full">{{ car.bookings.length }} จอง</span>
+                                    <span v-else class="text-[10px] text-green-500 font-bold bg-green-50 px-1.5 py-0.5 rounded-full">ว่าง</span>
+                                </div>
+                            </div>
+                        </div>
+                        <i :class="['fa-solid transition-transform duration-300 text-slate-400', expandedCars[car.id] ? 'fa-chevron-up' : 'fa-chevron-down']"></i>
+                    </div>
+
+                    <div v-if="expandedCars[car.id]" class="p-4 border-t border-slate-100 bg-white">
+                        <div v-if="car.bookings.length === 0" class="flex items-center gap-2 text-green-500 text-xs font-bold bg-green-50 p-3 rounded-lg border border-green-100">
+                            <i class="fa-regular fa-circle-check"></i>
+                            <span>ยังไม่มีการจอง</span>
+                        </div>
+                        <ul v-else class="space-y-2">
+                            <li v-for="booking in car.bookings" :key="booking.id"
+                                :class="['text-xs bg-slate-50 p-3 rounded-lg border-l-4',
+                                    booking.status === 'Approved' ? 'border-green-400' :
+                                    booking.status === 'Rejected' ? 'border-red-400' : 'border-yellow-400']">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <div class="font-bold text-slate-700">{{ formatDate(booking.start) }} - {{ formatDate(booking.end) }}</div>
+                                        <div class="text-slate-500 mt-1 flex items-center gap-2 flex-wrap">
+                                            <span><i class="fa-solid fa-user text-[10px] mr-1"></i>{{ booking.user }}</span>
+                                            <span :class="['px-1.5 py-0.5 rounded text-[10px] font-bold uppercase',
+                                                booking.status === 'Approved' ? 'bg-green-100 text-green-600' :
+                                                booking.status === 'Rejected' ? 'bg-red-100 text-red-600' : 'bg-yellow-100 text-yellow-600']">
+                                                {{ booking.status || 'Pending' }}
+                                            </span>
+                                        </div>
+                                        <div class="text-slate-400 mt-1 text-[10px]">{{ booking.purpose }}</div>
+                                    </div>
+                                    <!-- Action Buttons (only own bookings) -->
+                                    <div v-if="booking.userId === profile?.userId" class="flex flex-col gap-1 ml-2">
+                                        <!-- เปลี่ยนรถ -->
+                                        <button @click.stop="openChangeCar(booking)"
+                                            class="text-[10px] bg-brand-50 border border-brand-200 text-brand-600 px-2 py-1 rounded hover:bg-brand-100 transition-colors whitespace-nowrap">
+                                            <i class="fa-solid fa-car-side mr-1"></i>เปลี่ยนรถ
+                                        </button>
+                                        <!-- แก้ไขวันจอง -->
+                                        <button @click.stop="openEditDates(booking)"
+                                            class="text-[10px] bg-amber-50 border border-amber-200 text-amber-600 px-2 py-1 rounded hover:bg-amber-100 transition-colors whitespace-nowrap">
+                                            <i class="fa-regular fa-calendar-days mr-1"></i>แก้ไขวัน
+                                        </button>
+                                    </div>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal: เปลี่ยนรถ -->
+    <div v-if="showChangeCar" class="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-6">
+        <div class="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-sm">
+            <h3 class="text-lg font-heading font-bold text-slate-800 mb-1">เปลี่ยนรถ</h3>
+            <p class="text-xs text-slate-400 mb-4">{{ formatDate(changeCarBooking?.start) }} — {{ formatDate(changeCarBooking?.end) }}</p>
+            <div class="space-y-2 mb-6 max-h-64 overflow-y-auto">
+                <div v-for="car in cars" :key="car.id" @click="selectedNewCar = car"
+                    :class="['cursor-pointer rounded-xl p-3 border flex items-center gap-3 transition-all',
+                        selectedNewCar?.id === car.id ? 'bg-brand-50 border-brand-500 ring-1 ring-brand-500' : 'bg-white border-slate-200 hover:border-brand-300']">
+                    <div :class="['w-9 h-9 rounded-lg flex items-center justify-center text-sm',
+                        car.type === 'EV' ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-500']">
+                        <i :class="car.type === 'EV' ? 'fa-solid fa-bolt' : 'fa-solid fa-gas-pump'"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="font-bold text-sm text-slate-800">{{ car.model }}</div>
+                        <div class="text-[10px] text-slate-500 font-mono">{{ car.plate }} · {{ car.color }}</div>
+                    </div>
+                    <i v-if="selectedNewCar?.id === car.id" class="fa-solid fa-circle-check text-brand-500"></i>
+                </div>
+            </div>
+            <div class="flex gap-3">
+                <button @click="showChangeCar = false; selectedNewCar = null" class="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 text-sm font-bold hover:bg-slate-50">ยกเลิก</button>
+                <button @click="confirmChangeCar" :disabled="!selectedNewCar || changingCar"
+                    :class="['flex-1 py-3 rounded-xl text-sm font-bold transition-all',
+                        selectedNewCar && !changingCar ? 'bg-brand-600 text-white hover:bg-brand-700' : 'bg-slate-100 text-slate-400 cursor-not-allowed']">
+                    <i v-if="changingCar" class="fa-solid fa-circle-notch fa-spin mr-1"></i>
+                    <span v-else>ยืนยันเปลี่ยนรถ</span>
+                </button>
+            </div>
+        </div>
     </div>
 
-    <script>
-        const API_URL = 'https://script.google.com/macros/s/AKfycbxrBmEkW479Om9E9aTFQIdiwiXjLTOSRf0YrCI3_dSRBbyu7XKlxvHH-NpmKn_ITURF/exec';
-        const WEBHOOK_URL = ''; // ปิด webhook ถ้าไม่ได้ใช้ n8n อีกต่อไป
+    <!-- Modal: แก้ไขวันจอง -->
+    <div v-if="showEditDates" class="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-6">
+        <div class="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-sm">
+            <h3 class="text-lg font-heading font-bold text-slate-800 mb-1">แก้ไขวันจอง</h3>
+            <p class="text-xs text-slate-400 mb-1">{{ editDatesBooking?.carModel }} · {{ editDatesBooking?.carPlate }}</p>
+            <p class="text-xs text-amber-500 mb-4">วันเดิม: {{ formatDate(editDatesBooking?.start) }} — {{ formatDate(editDatesBooking?.end) }}</p>
 
-        const { createApp, ref, computed, onMounted, reactive, watch } = Vue;
+            <div class="space-y-4 mb-6">
+                <div class="space-y-1">
+                    <label class="text-xs font-semibold text-slate-500">วันรับรถใหม่</label>
+                    <div class="relative w-full h-[46px]">
+                        <input type="text" :value="formatDateDisplay(editDatesForm.start)" placeholder="dd/mm/yyyy" readonly
+                            class="w-full h-full bg-white border border-slate-200 text-slate-700 text-sm rounded-xl block p-3 shadow-sm outline-none absolute inset-0 z-0">
+                        <input type="date" v-model="editDatesForm.start" :min="minDate"
+                            class="w-full h-full opacity-0 absolute inset-0 z-10 cursor-pointer">
+                        <i class="fa-regular fa-calendar-days text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 z-0"></i>
+                    </div>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xs font-semibold text-slate-500">วันคืนรถใหม่</label>
+                    <div class="relative w-full h-[46px]">
+                        <input type="text" :value="formatDateDisplay(editDatesForm.end)" placeholder="dd/mm/yyyy" readonly
+                            class="w-full h-full bg-white border border-slate-200 text-slate-700 text-sm rounded-xl block p-3 shadow-sm outline-none absolute inset-0 z-0">
+                        <input type="date" v-model="editDatesForm.end" :min="editDatesForm.start || minDate"
+                            class="w-full h-full opacity-0 absolute inset-0 z-10 cursor-pointer">
+                        <i class="fa-regular fa-calendar-days text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 z-0"></i>
+                    </div>
+                </div>
+                <!-- คืนรถก่อนกำหนด shortcut -->
+                <button @click="setReturnToday"
+                    class="w-full py-2 rounded-xl border border-amber-200 bg-amber-50 text-amber-600 text-xs font-bold hover:bg-amber-100 transition-colors">
+                    <i class="fa-solid fa-rotate-left mr-1"></i>คืนรถวันนี้ (ใช้ไม่ครบจำนวนวัน)
+                </button>
+            </div>
 
-        createApp({
-            setup() {
-                // Cars from Firebase (dynamic)
-                const cars = ref([]);
+            <div class="flex gap-3">
+                <button @click="showEditDates = false" class="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 text-sm font-bold hover:bg-slate-50">ยกเลิก</button>
+                <button @click="confirmEditDates" :disabled="!editDatesForm.start || !editDatesForm.end || editingDates"
+                    :class="['flex-1 py-3 rounded-xl text-sm font-bold transition-all',
+                        editDatesForm.start && editDatesForm.end && !editingDates ? 'bg-amber-500 text-white hover:bg-amber-600' : 'bg-slate-100 text-slate-400 cursor-not-allowed']">
+                    <i v-if="editingDates" class="fa-solid fa-circle-notch fa-spin mr-1"></i>
+                    <span v-else>ยืนยันแก้ไขวัน</span>
+                </button>
+            </div>
+        </div>
+    </div>
 
-                const liffReady = ref(false);
-                const currentTab = ref('booking');
-                const profile = ref(null);
-                const exisingBookings = ref([]);
-                const loadingBookings = ref(false);
-                const submitting = ref(false);
-                const showSuccess = ref(false);
-                const expandedCars = reactive({});
+    <!-- Success Modal -->
+    <div v-if="showSuccess" class="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-6 animate-fade-in">
+        <div class="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-sm text-center transform transition-all scale-100">
+            <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 text-green-500 text-3xl shadow-sm">
+                <i class="fa-solid fa-check"></i>
+            </div>
+            <h3 class="text-xl font-heading font-bold text-slate-800 mb-2">Booking Confirmed!</h3>
+            <p class="text-sm text-slate-500 mb-8 leading-relaxed">จองรถสำเร็จแล้ว<br>ระบบได้บันทึกข้อมูลของคุณเรียบร้อย</p>
+            <button @click="closeWindow" class="w-full py-3 bg-slate-800 text-white rounded-xl font-bold text-sm hover:bg-slate-900 transition-colors">Close</button>
+        </div>
+    </div>
 
-                // Fetch cars from Firebase with retry
-                const fetchCarsFromFirebase = async (retryCount = 0) => {
-                    console.log('🚗 Fetching cars from Firebase... (attempt ' + (retryCount + 1) + ')');
+</div>
 
-                    // Wait for Firebase to be ready (max 5 retries)
-                    if (!window.firebaseDB || !window.firebaseRef || !window.firebaseGet) {
-                        if (retryCount < 5) {
-                            console.log('⏳ Firebase not ready, retrying in 500ms...');
-                            setTimeout(() => fetchCarsFromFirebase(retryCount + 1), 500);
-                            return;
-                        }
-                        console.warn('❌ Firebase not ready after 5 retries, using fallback');
-                        cars.value = [
-                            { id: 1, plate: 'ญช 908 กท', model: 'Cap', color: 'สีขาว', type: 'Fuel' },
-                            { id: 2, plate: 'ฎฮ 9043 กท', model: 'Optra', color: 'สีดำ', type: 'Fuel' },
-                            { id: 3, plate: '1ขท 3650 กท', model: 'Optra', color: 'สีเทา', type: 'Fuel' },
-                            { id: 4, plate: 'สท 4690 กท', model: 'Optra', color: 'สีขาว', type: 'Fuel' },
-                            { id: 5, plate: '3ขช 2404 กท', model: 'Optra', color: 'สีเงิน', type: 'Fuel' },
-                            { id: 6, plate: '3ขช 3222 กท', model: 'Cap', color: 'สีน้ำตาล', type: 'Fuel' },
-                            { id: 7, plate: 'บ 3004 กท', model: 'MG4', color: 'สีขาว', type: 'EV' },
-                            { id: 8, plate: 'ฮ 2227 กท', model: 'MG4', color: 'สีเทา', type: 'EV' }
-                        ];
-                        return;
-                    }
+<script>
+    const API_URL = 'https://script.google.com/macros/s/AKfycbxrBmEkW479Om9E9aTFQIdiwiXjLTOSRf0YrCI3_dSRBbyu7XKlxvHH-NpmKn_ITURF/exec';
+    const WEBHOOK_URL = '';
 
-                    try {
-                        const carsRef = window.firebaseRef(window.firebaseDB, 'cars');
-                        const snapshot = await window.firebaseGet(carsRef);
+    const { createApp, ref, computed, onMounted, reactive, watch } = Vue;
 
-                        if (snapshot.exists()) {
-                            const data = snapshot.val();
-                            const carsArray = Object.keys(data)
-                                .filter(k => k !== '_placeholder')
-                                .map(k => ({ firebaseKey: k, ...data[k] }))
-                                .filter(c => c.active !== false) // Only active cars
-                                .sort((a, b) => (a.id || 0) - (b.id || 0));
+    createApp({
+        setup() {
+            const cars = ref([]);
+            const liffReady = ref(false);
+            const currentTab = ref('booking');
+            const profile = ref(null);
+            const exisingBookings = ref([]);
+            const loadingBookings = ref(false);
+            const submitting = ref(false);
+            const showSuccess = ref(false);
+            const expandedCars = reactive({});
 
-                            cars.value = carsArray;
-                            console.log('✅ Cars loaded from Firebase:', carsArray.length, carsArray.map(c => c.plate));
-                        } else {
-                            console.warn('No cars in Firebase, using fallback');
-                            cars.value = [
-                                { id: 1, plate: 'ญช 908 กท', model: 'Cap', color: 'สีขาว', type: 'Fuel' },
-                                { id: 2, plate: 'ฎฮ 9043 กท', model: 'Optra', color: 'สีดำ', type: 'Fuel' },
-                                { id: 3, plate: '1ขท 3650 กท', model: 'Optra', color: 'สีเทา', type: 'Fuel' },
-                                { id: 4, plate: 'สท 4690 กท', model: 'Optra', color: 'สีขาว', type: 'Fuel' },
-                                { id: 5, plate: '3ขช 2404 กท', model: 'Optra', color: 'สีเงิน', type: 'Fuel' },
-                                { id: 6, plate: '3ขช 3222 กท', model: 'Cap', color: 'สีน้ำตาล', type: 'Fuel' },
-                                { id: 7, plate: 'บ 3004 กท', model: 'MG4', color: 'สีขาว', type: 'EV' },
-                                { id: 8, plate: 'ฮ 2227 กท', model: 'MG4', color: 'สีเทา', type: 'EV' }
-                            ];
-                        }
-                    } catch (error) {
-                        console.error('❌ Fetch cars error:', error);
-                    }
-                };
+            // ===== Change Car State =====
+            const showChangeCar = ref(false);
+            const changeCarBooking = ref(null);
+            const selectedNewCar = ref(null);
+            const changingCar = ref(false);
 
-                const form = reactive({
-                    username: '',
-                    start: '',
-                    end: '',
-                    carId: null,
-                    usageType: 'Work', // Default
-                    purpose: ''
-                });
+            // ===== Edit Dates State =====
+            const showEditDates = ref(false);
+            const editDatesBooking = ref(null);
+            const editDatesForm = reactive({ start: '', end: '' });
+            const editingDates = ref(false);
 
-                // Init LIFF
-                // Init LIFF
-                const initLiff = async () => {
-                    const liffTimeout = new Promise((_, reject) => {
-                        setTimeout(() => reject(new Error('Timeout')), 5000); // 5 seconds timeout
-                    });
-
-                    try {
-                        // Replace with your LIFF ID if running locally/testing
-                        await Promise.race([
-                            liff.init({ liffId: "2008929780-8kHcdplV" }),
-                            liffTimeout
-                        ]);
-
-                        if (liff.isLoggedIn()) {
-                            profile.value = await liff.getProfile();
-                            form.username = profile.value.displayName; // Auto-fill
-                        } else {
-                            liff.login();
-                        }
-                        liffReady.value = true;
-                    } catch (err) {
-                        console.log('LIFF Init failed/mocking/timeout', err);
-                        // Mock for local browser testing or fallback
-                        profile.value = {
-                            displayName: 'Guest/Offline',
-                            pictureUrl: '',
-                            userId: 'U_OFFLINE'
-                        };
-                        form.username = profile.value.displayName;
-                        liffReady.value = true;
-                    }
-                };
-
-                // Fetch Existing Bookings from Firebase (faster than Google Sheets)
-                const fetchBookings = async () => {
-                    loadingBookings.value = true;
-                    console.log('🔥 Fetching bookings from Firebase...');
-
-                    try {
-                        if (!window.firebaseDB || !window.firebaseRef) {
-                            console.error('❌ Firebase not initialized');
-                            exisingBookings.value = [];
-                            return;
-                        }
-
-                        const bookingsRef = window.firebaseRef(window.firebaseDB, 'bookings');
-                        const snapshot = await bookingsRef.once('value');
-
-                        if (snapshot.exists()) {
-                            const data = snapshot.val();
-                            // Convert Firebase object to array with carId mapping
-                            const bookingsArray = Object.keys(data).map(key => {
-                                const booking = data[key];
-                                return {
-                                    id: key,
-                                    bookingId: booking.bookingId || key,
-                                    userId: booking.userId,
-                                    user: booking.userName,
-                                    carPlate: booking.carPlate,
-                                    carModel: booking.carModel,
-                                    carId: booking.carId || mapPlateToId(booking.carPlate),
-                                    start: booking.startDate || booking.start,
-                                    end: booking.endDate || booking.end,
-                                    purpose: booking.combinedPurpose || booking.purpose,
-                                    status: booking.status || 'Pending'
-                                };
-                            });
-
-                            console.log('✅ Firebase bookings loaded:', bookingsArray.length);
-                            exisingBookings.value = bookingsArray;
-                        } else {
-                            console.log('ℹ️ No bookings in Firebase');
-                            exisingBookings.value = [];
-                        }
-                    } catch (e) {
-                        console.error('❌ Firebase fetch error:', e);
-                        exisingBookings.value = [];
-                    } finally {
-                        loadingBookings.value = false;
-                    }
-                };
-
-                // Helper: Map plate to car ID
-                const mapPlateToId = (plate) => {
-                    const car = cars.value.find(c => c.plate === plate);
-                    return car ? car.id : 0;
-                };
-
-                // Watch Date Changes - ตรวจสอบและรีเซ็ตวันที่ย้อนหลังอัตโนมัติ
-                watch(() => form.start, (newVal) => {
-                    if (newVal) {
-                        // คำนวณวันที่ปัจจุบัน (Local timezone)
-                        const now = new Date();
-                        const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-
-                        // ถ้าเลือกวันย้อนหลัง ให้แจ้งเตือนและรีเซ็ตเป็นวันนี้
-                        if (newVal < todayStr) {
-                            console.log('⚠️ Start date is in the past, resetting to today');
-                            alert('❌ ไม่สามารถเลือกวันย้อนหลังได้\nกรุณาเลือกวันที่ปัจจุบันหรืออนาคต');
-                            form.start = todayStr;
-                            return;
-                        }
-                    }
-                    form.carId = null; // Reset car selection
-                });
-
-                watch(() => form.end, (newVal) => {
-                    if (newVal) {
-                        // คำนวณวันที่ปัจจุบัน (Local timezone)
-                        const now = new Date();
-                        const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-
-                        // ถ้าเลือกวันย้อนหลัง ให้แจ้งเตือนและรีเซ็ตเป็นวันนี้หรือ start date
-                        const minEndDate = form.start || todayStr;
-                        if (newVal < minEndDate) {
-                            console.log('⚠️ End date is before start date, resetting');
-                            alert('❌ วันคืนรถต้องไม่น้อยกว่าวันรับรถ\nกรุณาเลือกใหม่');
-                            form.end = minEndDate;
-                            return;
-                        }
-                    }
-                    form.carId = null; // Reset car selection
-                });
-
-                // Compute Available Cars
-                const availableCars = computed(() => {
-                    if (!form.start || !form.end) return [];
-
-                    const reqStart = new Date(form.start + 'T00:00:00');
-                    const reqEnd = new Date(form.end + 'T23:59:59');
-
-                    if (reqStart > reqEnd) return []; // Invalid range
-
-                    console.log('📅 Checking availability for:', form.start, 'to', form.end);
-                    console.log('📦 Total bookings loaded:', exisingBookings.value.length);
-
-                    // Filter logic: Exclude cars that have overlapping ACTIVE bookings
-                    // Only consider bookings with status: Approved or Pending
-                    // Ignore: Rejected, Returned, Cancelled
-                    const busyCarIds = exisingBookings.value.filter(booking => {
-                        // ✅ Only block cars for Active bookings (Approved or Pending)
-                        const status = (booking.status || 'Pending').toLowerCase();
-                        if (status === 'rejected' || status === 'returned' || status === 'cancelled') {
-                            return false; // Don't block for these statuses
-                        }
-
-                        let bStartStr = booking.start;
-                        let bEndStr = booking.end;
-
-                        // Handle potential ISO strings by taking just the date part
-                        if (bStartStr && bStartStr.includes('T')) bStartStr = bStartStr.split('T')[0];
-                        if (bEndStr && bEndStr.includes('T')) bEndStr = bEndStr.split('T')[0];
-
-                        if (!bStartStr || !bEndStr) return false; // Invalid booking data
-
-                        const bStart = new Date(bStartStr + 'T00:00:00');
-                        const bEnd = new Date(bEndStr + 'T23:59:59');
-
-                        // Standard Overlap: Range A overlaps Range B if StartA <= EndB AND EndA >= StartB
-                        const overlaps = bStart <= reqEnd && bEnd >= reqStart;
-
-                        if (overlaps) {
-                            console.log('🚫 Conflict found:', booking.carId, booking.start, '-', booking.end, 'Status:', booking.status);
-                        }
-
-                        return overlaps;
-                    }).map(b => parseInt(b.carId || 0)); // Ensure ID comparison
-
-                    console.log('🚗 Busy car IDs:', busyCarIds);
-
-                    return cars.value.filter(c => !busyCarIds.includes(c.id));
-                });
-
-                // Compute Schedule for all cars (Next 30 days)
-                const carsWithSchedule = computed(() => {
-                    const now = new Date();
-                    now.setHours(0, 0, 0, 0);
-                    const thirtyDaysLater = new Date(now);
-                    thirtyDaysLater.setDate(now.getDate() + 30);
-
-                    return cars.value.map(car => {
-                        // Find bookings for this car in future
-                        const carBookings = exisingBookings.value.filter(b => {
-                            if (parseInt(b.carId) !== car.id) return false;
-
-                            let bEndStr = b.end;
-                            if (bEndStr.includes('T')) bEndStr = bEndStr.split('T')[0];
-                            const bEnd = new Date(bEndStr + 'T23:59:59');
-
-                            return bEnd >= now; // Overlaps with future (roughly)
-                        }).sort((a, b) => new Date(a.start) - new Date(b.start));
-
-                        return {
-                            ...car,
-                            bookings: carBookings
-                        };
-                    });
-                });
-
-                // ใช้วันที่ท้องถิ่น (Local timezone) แทน UTC
-                const minDate = computed(() => {
-                    const now = new Date();
-                    const year = now.getFullYear();
-                    const month = String(now.getMonth() + 1).padStart(2, '0');
-                    const day = String(now.getDate()).padStart(2, '0');
-                    return `${year}-${month}-${day}`;
-                });
-
-                // Validate start date - ป้องกันการเลือกวันย้อนหลัง
-                const validateStartDate = () => {
-                    if (form.start && form.start < minDate.value) {
-                        form.start = minDate.value;
-                    }
-                };
-
-                // Validate end date - ต้องไม่น้อยกว่า start และไม่น้อยกว่าวันปัจจุบัน
-                const validateEndDate = () => {
-                    const minEndDate = form.start || minDate.value;
-                    if (form.end && form.end < minEndDate) {
-                        form.end = minEndDate;
-                    }
-                };
-
-                const formatDate = (dateStr) => {
-                    if (!dateStr) return '-';
-                    if (dateStr.includes('T')) dateStr = dateStr.split('T')[0];
-                    const d = new Date(dateStr);
-                    // Format DD/MM
-                    return d.getDate().toString().padStart(2, '0') + '/' + (d.getMonth() + 1).toString().padStart(2, '0');
-                };
-
-                const formatDateDisplay = (dateVal) => {
-                    if (!dateVal) return '';
-                    const [y, m, d] = dateVal.split('-');
-                    return `${d}/${m}/${y}`;
+            const fetchCarsFromFirebase = async (retryCount = 0) => {
+                if (!window.firebaseDB || !window.firebaseRef || !window.firebaseGet) {
+                    if (retryCount < 5) { setTimeout(() => fetchCarsFromFirebase(retryCount + 1), 500); return; }
+                    cars.value = getFallbackCars(); return;
                 }
+                try {
+                    const snapshot = await window.firebaseGet(window.firebaseRef(window.firebaseDB, 'cars'));
+                    if (snapshot.exists()) {
+                        const data = snapshot.val();
+                        cars.value = Object.keys(data).filter(k => k !== '_placeholder').map(k => ({ firebaseKey: k, ...data[k] })).filter(c => c.active !== false).sort((a, b) => (a.id || 0) - (b.id || 0));
+                    } else { cars.value = getFallbackCars(); }
+                } catch(e) { cars.value = getFallbackCars(); }
+            };
 
-                const toggleExpand = (carId) => {
-                    expandedCars[carId] = !expandedCars[carId];
-                };
+            const getFallbackCars = () => [
+                { id: 1, plate: 'ญช 908 กท', model: 'Cap', color: 'สีขาว', type: 'Fuel' },
+                { id: 2, plate: 'ฎฮ 9043 กท', model: 'Optra', color: 'สีดำ', type: 'Fuel' },
+                { id: 3, plate: '1ขท 3650 กท', model: 'Optra', color: 'สีเทา', type: 'Fuel' },
+                { id: 4, plate: 'สท 4690 กท', model: 'Optra', color: 'สีขาว', type: 'Fuel' },
+                { id: 5, plate: '3ขช 2404 กท', model: 'Optra', color: 'สีเงิน', type: 'Fuel' },
+                { id: 6, plate: '3ขช 3222 กท', model: 'Cap', color: 'สีน้ำตาล', type: 'Fuel' },
+                { id: 7, plate: 'บ 3004 กท', model: 'MG4', color: 'สีขาว', type: 'EV' },
+                { id: 8, plate: 'ฮ 2227 กท', model: 'MG4', color: 'สีเทา', type: 'EV' }
+            ];
 
-                const isValid = computed(() => {
-                    return form.username && form.start && form.end && form.carId && form.purpose && form.usageType && !submitting.value;
+            const form = reactive({ username: '', start: '', end: '', carId: null, usageType: 'Work', purpose: '' });
+
+            const initLiff = async () => {
+                try {
+                    await Promise.race([liff.init({ liffId: "2008929780-8kHcdplV" }), new Promise((_, r) => setTimeout(() => r(new Error('Timeout')), 5000))]);
+                    if (liff.isLoggedIn()) { profile.value = await liff.getProfile(); form.username = profile.value.displayName; }
+                    else { liff.login(); }
+                    liffReady.value = true;
+                } catch(err) {
+                    profile.value = { displayName: 'Guest/Offline', pictureUrl: '', userId: 'U_OFFLINE' };
+                    form.username = profile.value.displayName;
+                    liffReady.value = true;
+                }
+            };
+
+            const fetchBookings = async () => {
+                loadingBookings.value = true;
+                try {
+                    const snapshot = await window.firebaseRef(window.firebaseDB, 'bookings').once('value');
+                    if (snapshot.exists()) {
+                        const data = snapshot.val();
+                        exisingBookings.value = Object.keys(data).map(key => {
+                            const b = data[key];
+                            return { id: key, bookingId: b.bookingId || key, userId: b.userId, user: b.userName, carPlate: b.carPlate, carModel: b.carModel, carId: b.carId || mapPlateToId(b.carPlate), start: b.startDate || b.start, end: b.endDate || b.end, purpose: b.combinedPurpose || b.purpose, status: b.status || 'Pending' };
+                        });
+                    } else { exisingBookings.value = []; }
+                } catch(e) { exisingBookings.value = []; }
+                finally { loadingBookings.value = false; }
+            };
+
+            const mapPlateToId = (plate) => { const car = cars.value.find(c => c.plate === plate); return car ? car.id : 0; };
+
+            watch(() => form.start, (newVal) => {
+                if (newVal) {
+                    const now = new Date();
+                    const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+                    if (newVal < todayStr) { alert('❌ ไม่สามารถเลือกวันย้อนหลังได้'); form.start = todayStr; return; }
+                }
+                form.carId = null;
+            });
+
+            watch(() => form.end, (newVal) => {
+                if (newVal) {
+                    const now = new Date();
+                    const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+                    const minEnd = form.start || todayStr;
+                    if (newVal < minEnd) { alert('❌ วันคืนรถต้องไม่น้อยกว่าวันรับรถ'); form.end = minEnd; return; }
+                }
+                form.carId = null;
+            });
+
+            // ✅ FIX 1: Pending ไม่ lock รถแล้วค่ะ
+            const availableCars = computed(() => {
+                if (!form.start || !form.end) return [];
+                const reqStart = new Date(form.start + 'T00:00:00');
+                const reqEnd = new Date(form.end + 'T23:59:59');
+                if (reqStart > reqEnd) return [];
+
+                const busyCarIds = exisingBookings.value.filter(booking => {
+                    const status = (booking.status || 'Pending').toLowerCase();
+                    // ✅ เพิ่ม 'pending' — ส่วนตัวที่รอการอนุมัติไม่ lock รถ
+                    if (['rejected', 'returned', 'cancelled', 'pending'].includes(status)) return false;
+
+                    let bStartStr = booking.start;
+                    let bEndStr = booking.end;
+                    if (bStartStr?.includes('T')) bStartStr = bStartStr.split('T')[0];
+                    if (bEndStr?.includes('T')) bEndStr = bEndStr.split('T')[0];
+                    if (!bStartStr || !bEndStr) return false;
+
+                    const bStart = new Date(bStartStr + 'T00:00:00');
+                    const bEnd = new Date(bEndStr + 'T23:59:59');
+                    return bStart <= reqEnd && bEnd >= reqStart;
+                }).map(b => parseInt(b.carId || 0));
+
+                return cars.value.filter(c => !busyCarIds.includes(c.id));
+            });
+
+            const carsWithSchedule = computed(() => {
+                const now = new Date(); now.setHours(0,0,0,0);
+                return cars.value.map(car => {
+                    const carBookings = exisingBookings.value.filter(b => {
+                        if (parseInt(b.carId) !== car.id) return false;
+                        let bEndStr = b.end;
+                        if (bEndStr?.includes('T')) bEndStr = bEndStr.split('T')[0];
+                        return new Date(bEndStr + 'T23:59:59') >= now;
+                    }).sort((a, b) => new Date(a.start) - new Date(b.start));
+                    return { ...car, bookings: carBookings };
                 });
+            });
 
-                const selectCar = (car) => {
-                    form.carId = car.id;
-                };
+            const minDate = computed(() => {
+                const now = new Date();
+                return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+            });
 
-                const submitBooking = async () => {
-                    if (!isValid.value) return;
-                    submitting.value = true;
+            const validateStartDate = () => { if (form.start && form.start < minDate.value) form.start = minDate.value; };
+            const validateEndDate = () => { const m = form.start || minDate.value; if (form.end && form.end < m) form.end = m; };
 
-                    const selectedCar = cars.value.find(c => c.id === form.carId);
+            const formatDate = (dateStr) => {
+                if (!dateStr) return '-';
+                if (dateStr.includes('T')) dateStr = dateStr.split('T')[0];
+                const d = new Date(dateStr);
+                return d.getDate().toString().padStart(2,'0') + '/' + (d.getMonth()+1).toString().padStart(2,'0');
+            };
 
-                    // Generate unique booking ID
-                    const bookingId = `BK${Date.now()}-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
+            const formatDateDisplay = (dateVal) => {
+                if (!dateVal) return '';
+                const [y,m,d] = dateVal.split('-');
+                return `${d}/${m}/${y}`;
+            };
 
-                    // Combine Type and Details for Backend
-                    const combinedPurpose = `[${form.usageType === 'Work' ? 'งาน' : 'ส่วนตัว'}] ${form.purpose}`;
+            const toggleExpand = (carId) => { expandedCars[carId] = !expandedCars[carId]; };
+            const isValid = computed(() => form.username && form.start && form.end && form.carId && form.purpose && form.usageType && !submitting.value);
+            const selectCar = (car) => { form.carId = car.id; };
 
-                    const payload = {
-                        bookingId: bookingId,
-                        userId: profile.value?.userId || 'unknown',
-                        user: form.username,
-                        carPlate: selectedCar.plate,
-                        carModel: selectedCar.model,
-                        carColor: selectedCar.color, // เพิ่มสีรถ
-                        carId: selectedCar.id,
-                        start: form.start, // YYYY-MM-DD
-                        end: form.end,     // YYYY-MM-DD
-                        purpose: combinedPurpose,
-                        usageType: form.usageType // Send usage type for auto-approval
-                    };
+            const submitBooking = async () => {
+                if (!isValid.value) return;
+                submitting.value = true;
+                const selectedCar = cars.value.find(c => c.id === form.carId);
+                const bookingId = `BK${Date.now()}-${Math.random().toString(36).substring(2,9).toUpperCase()}`;
+                const combinedPurpose = `[${form.usageType === 'Work' ? 'งาน' : 'ส่วนตัว'}] ${form.purpose}`;
 
-                    try {
-                        if (API_URL === 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') {
-                            // Mock Submit
-                            await new Promise(r => setTimeout(r, 1500));
-                            console.log('Mock Payload:', payload);
-                        } else {
-                            await fetch(API_URL, {
-                                method: 'POST',
-                                mode: 'no-cors', // Apps Script Web App requirement usually
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify(payload)
-                            });
-                        }
-
-                        // Send to Webhook if URL is configured
-                        if (WEBHOOK_URL && WEBHOOK_URL.trim() !== '') {
-                            try {
-                                const webhookPayload = {
-                                    event: 'car_booking',
-                                    bookingId: bookingId,
-                                    timestamp: new Date().toISOString(),
-                                    booking: {
-                                        userId: profile.value?.userId || 'unknown',
-                                        userName: form.username,
-                                        userPicture: profile.value?.pictureUrl || '',
-                                        car: {
-                                            id: selectedCar.id,
-                                            plate: selectedCar.plate,
-                                            model: selectedCar.model,
-                                            color: selectedCar.color,
-                                            type: selectedCar.type
-                                        },
-                                        dates: {
-                                            start: form.start,
-                                            end: form.end,
-                                            startFormatted: formatDateDisplay(form.start),
-                                            endFormatted: formatDateDisplay(form.end)
-                                        },
-                                        usage: {
-                                            type: form.usageType,
-                                            purpose: form.purpose,
-                                            combinedPurpose: combinedPurpose
-                                        }
-                                    }
-                                };
-
-                                await fetch(WEBHOOK_URL, {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify(webhookPayload)
-                                });
-                                console.log('Webhook sent successfully:', webhookPayload);
-                            } catch (webhookError) {
-                                console.error('Webhook sending failed:', webhookError);
-                                // Continue even if webhook fails - don't block the booking
-                            }
-                        }
-
-                        // ============================================
-                        // PUSH TO FIREBASE REALTIME DATABASE
-                        // ============================================
-                        console.log('🔥 Checking Firebase availability...');
-                        console.log('firebaseDB:', !!window.firebaseDB);
-                        console.log('firebasePush:', !!window.firebasePush);
-                        console.log('firebaseRef:', !!window.firebaseRef);
-
-                        if (window.firebaseDB && window.firebasePush && window.firebaseRef) {
-                            try {
-                                const firebaseData = {
-                                    bookingId: bookingId,
-                                    userId: profile.value?.userId || 'unknown',
-                                    userName: form.username,
-                                    userPicture: profile.value?.pictureUrl || '',
-                                    carId: selectedCar.id,
-                                    carPlate: selectedCar.plate,
-                                    carModel: selectedCar.model,
-                                    carColor: selectedCar.color,
-                                    carType: selectedCar.type,
-                                    startDate: form.start,
-                                    endDate: form.end,
-                                    usageType: form.usageType,
-                                    purpose: form.purpose,
-                                    combinedPurpose: combinedPurpose,
-                                    status: form.usageType === 'Work' ? 'Approved' : 'Pending',
-                                    createdAt: new Date().toISOString()
-                                };
-                                console.log('📤 Sending to Firebase:', firebaseData);
-
-                                const bookingsRef = window.firebaseRef(window.firebaseDB, 'bookings');
-                                await window.firebasePush(bookingsRef, firebaseData);
-                                console.log('✅ Firebase: Booking saved successfully');
-                                alert('✅ จองสำเร็จ! ข้อมูลถูกบันทึกแล้ว');
-                            } catch (firebaseError) {
-                                console.error('❌ Firebase error:', firebaseError);
-                                alert('❌ Firebase Error: ' + firebaseError.message);
-                                // Continue even if Firebase fails
-                            }
-                        } else {
-                            console.warn('⚠️ Firebase not available - data not saved to Firebase');
-                            alert('⚠️ Firebase ยังไม่พร้อม ข้อมูลอาจไม่ถูกบันทึก');
-                        }
-
-                        showSuccess.value = true;
-                    } catch (e) {
-                        console.error('Submit error:', e);
-                        alert('Submission failed: ' + e.message);
-                    } finally {
-                        submitting.value = false;
+                try {
+                    if (window.firebaseDB && window.firebasePush && window.firebaseRef) {
+                        const firebaseData = {
+                            bookingId, userId: profile.value?.userId || 'unknown', userName: form.username,
+                            userPicture: profile.value?.pictureUrl || '', carId: selectedCar.id,
+                            carPlate: selectedCar.plate, carModel: selectedCar.model, carColor: selectedCar.color,
+                            carType: selectedCar.type, startDate: form.start, endDate: form.end,
+                            usageType: form.usageType, purpose: form.purpose, combinedPurpose,
+                            // ✅ FIX 2: Work = Approved อัตโนมัติ, ส่วนตัว = Pending รอผู้อนุมัติพิจารณา
+                            status: form.usageType === 'Work' ? 'Approved' : 'Pending',
+                            createdAt: new Date().toISOString()
+                        };
+                        await window.firebasePush(window.firebaseRef(window.firebaseDB, 'bookings'), firebaseData);
                     }
-                };
+                    showSuccess.value = true;
+                } catch(e) { alert('Submission failed: ' + e.message); }
+                finally { submitting.value = false; }
+            };
 
-                const closeWindow = () => {
-                    if (liff.isInClient()) {
-                        liff.closeWindow();
-                    } else {
-                        window.location.reload();
-                    }
-                };
+            // ===== Change Car Logic =====
+            const openChangeCar = (booking) => {
+                changeCarBooking.value = booking;
+                selectedNewCar.value = null;
+                showChangeCar.value = true;
+            };
 
-                onMounted(() => {
-                    initLiff();
-                    fetchCarsFromFirebase(); // Load cars from Firebase
-                    fetchBookings();
-                });
+            const confirmChangeCar = async () => {
+                if (!selectedNewCar.value || !changeCarBooking.value) return;
+                changingCar.value = true;
+                try {
+                    await window.firebaseRef(window.firebaseDB, `bookings/${changeCarBooking.value.id}`).update({
+                        carId: selectedNewCar.value.id, carPlate: selectedNewCar.value.plate,
+                        carModel: selectedNewCar.value.model, carColor: selectedNewCar.value.color,
+                        carType: selectedNewCar.value.type, updatedAt: new Date().toISOString()
+                    });
+                    await fetchBookings();
+                    showChangeCar.value = false;
+                    alert(`✅ เปลี่ยนเป็น ${selectedNewCar.value.model} (${selectedNewCar.value.plate}) เรียบร้อยค่ะ`);
+                    selectedNewCar.value = null;
+                } catch(e) { alert('❌ เปลี่ยนรถไม่สำเร็จ: ' + e.message); }
+                finally { changingCar.value = false; }
+            };
 
-                return {
-                    liffReady,
-                    profile,
-                    form,
-                    availableCars,
-                    isValid,
-                    selectCar,
-                    submitBooking,
-                    loadingBookings,
-                    submitting,
-                    showSuccess,
-                    closeWindow,
-                    currentTab,
-                    carsWithSchedule,
-                    formatDate,
-                    fetchBookings,
-                    expandedCars,
-                    toggleExpand,
-                    minDate,
-                    formatDateDisplay,
-                    validateStartDate,
-                    validateEndDate
-                };
-            }
-        }).mount('#app');
-    </script>
+            // ===== Edit Dates Logic =====
+            const openEditDates = (booking) => {
+                editDatesBooking.value = booking;
+                // Pre-fill ด้วยวันเดิม
+                let s = booking.start; if (s?.includes('T')) s = s.split('T')[0];
+                let e = booking.end;   if (e?.includes('T')) e = e.split('T')[0];
+                editDatesForm.start = s || '';
+                editDatesForm.end = e || '';
+                showEditDates.value = true;
+            };
+
+            // Shortcut: คืนรถวันนี้
+            const setReturnToday = () => {
+                editDatesForm.end = minDate.value;
+            };
+
+            const confirmEditDates = async () => {
+                if (!editDatesForm.start || !editDatesForm.end || !editDatesBooking.value) return;
+                if (editDatesForm.end < editDatesForm.start) {
+                    alert('❌ วันคืนรถต้องไม่น้อยกว่าวันรับรถค่ะ'); return;
+                }
+                editingDates.value = true;
+                try {
+                    await window.firebaseRef(window.firebaseDB, `bookings/${editDatesBooking.value.id}`).update({
+                        startDate: editDatesForm.start, endDate: editDatesForm.end,
+                        start: editDatesForm.start, end: editDatesForm.end,
+                        updatedAt: new Date().toISOString()
+                    });
+                    await fetchBookings();
+                    showEditDates.value = false;
+                    alert(`✅ อัปเดตวันจองเรียบร้อยค่ะ\nรับ: ${formatDateDisplay(editDatesForm.start)} → คืน: ${formatDateDisplay(editDatesForm.end)}`);
+                } catch(e) { alert('❌ แก้ไขวันไม่สำเร็จ: ' + e.message); }
+                finally { editingDates.value = false; }
+            };
+
+            const closeWindow = () => {
+                if (liff.isInClient()) liff.closeWindow();
+                else window.location.reload();
+            };
+
+            onMounted(() => { initLiff(); fetchCarsFromFirebase(); fetchBookings(); });
+
+            return {
+                liffReady, profile, form, cars, availableCars, isValid, selectCar, submitBooking,
+                loadingBookings, submitting, showSuccess, closeWindow, currentTab, carsWithSchedule,
+                formatDate, fetchBookings, expandedCars, toggleExpand, minDate, formatDateDisplay,
+                validateStartDate, validateEndDate,
+                // Change Car
+                showChangeCar, changeCarBooking, selectedNewCar, changingCar, openChangeCar, confirmChangeCar,
+                // Edit Dates
+                showEditDates, editDatesBooking, editDatesForm, editingDates, openEditDates, confirmEditDates, setReturnToday
+            };
+        }
+    }).mount('#app');
+</script>
 </body>
-
 </html>
