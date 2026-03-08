@@ -240,13 +240,20 @@
                                     </div>
                                     <div class="text-slate-400 truncate mt-0.5">{{ b.purpose }}</div>
                                 </div>
-                                <!-- ปุ่มแก้ไข เฉพาะการจองงานของตัวเอง -->
-                                <div v-if="b.userId===profile?.userId && b.status==='Approved'" class="flex flex-col gap-1 flex-shrink-0">
-                                    <button @click.stop="openChangeCar(b)" class="text-[10px] bg-brand-50 border border-brand-200 text-brand-600 px-2 py-1 rounded-lg hover:bg-brand-100 whitespace-nowrap">
-                                        <i class="fa-solid fa-car-side mr-0.5"></i>เปลี่ยนรถ
-                                    </button>
-                                    <button @click.stop="openEditDates(b)" class="text-[10px] bg-amber-50 border border-amber-200 text-amber-600 px-2 py-1 rounded-lg hover:bg-amber-100 whitespace-nowrap">
-                                        <i class="fa-regular fa-calendar mr-0.5"></i>แก้ไขวัน
+                                <!-- ปุ่มแก้ไข เฉพาะการจองของตัวเอง -->
+                                <div v-if="b.userId===profile?.userId" class="flex flex-col gap-1 flex-shrink-0">
+                                    <!-- เปลี่ยนรถ + แก้ไขวัน เฉพาะ Approved -->
+                                    <template v-if="b.status==='Approved'">
+                                        <button @click.stop="openChangeCar(b)" class="text-[10px] bg-brand-50 border border-brand-200 text-brand-600 px-2 py-1 rounded-lg hover:bg-brand-100 whitespace-nowrap">
+                                            <i class="fa-solid fa-car-side mr-0.5"></i>เปลี่ยนรถ
+                                        </button>
+                                        <button @click.stop="openEditDates(b)" class="text-[10px] bg-amber-50 border border-amber-200 text-amber-600 px-2 py-1 rounded-lg hover:bg-amber-100 whitespace-nowrap">
+                                            <i class="fa-regular fa-calendar mr-0.5"></i>แก้ไขวัน
+                                        </button>
+                                    </template>
+                                    <!-- ยกเลิก ทำได้ทั้ง 2 ประเภท -->
+                                    <button @click.stop="cancelBooking(b)" class="text-[10px] bg-red-50 border border-red-200 text-red-500 px-2 py-1 rounded-lg hover:bg-red-100 whitespace-nowrap">
+                                        <i class="fa-solid fa-xmark mr-0.5"></i>ยกเลิก
                                     </button>
                                 </div>
                             </div>
@@ -651,6 +658,22 @@ createApp({
             finally{editingDates.value=false;}
         };
 
+        // Cancel Booking
+        const cancelBooking = async (b) => {
+            const typeTxt = b.status==='Approved' ? 'การจองงาน' : 'คำขอส่วนตัว';
+            const car = b.carModel || '';
+            const dates = `${fmtFull(b.start)} – ${fmtFull(b.end)}`;
+            if (!confirm(`❗ ยืนยันยกเลิก${typeTxt}\n${car} · ${dates}\n\nกดตกลงเพื่อยืนยันค่ะ`)) return;
+            try {
+                await window.firebaseRef(window.firebaseDB, `bookings/${b.id}`).update({
+                    status: 'Cancelled',
+                    updatedAt: new Date().toISOString()
+                });
+                await fetchBookings();
+                alert('✅ ยกเลิกการจองเรียบร้อยแล้วค่ะ');
+            } catch(e) { alert('❌ ไม่สำเร็จ: ' + e.message); }
+        };
+
         // Helpers
         const fmtFull=(s)=>{if(!s)return'-';s=s.split('T')[0];const d=new Date(s);return`${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;};
         const fmtDisplay=(v)=>{if(!v)return'';const[y,m,d]=v.split('-');return`${d}/${m}/${y}`;};
@@ -664,7 +687,7 @@ createApp({
             form,availableCars,carsWithSchedule,isValid,submitBooking,fetchBookings,toggleExpand,minDate,
             onStartChange,onEndChange,fmtFull,fmtDisplay,closeWindow,
             showChangeCar,changeCarBooking,selectedNewCar,changingCar,openChangeCar,confirmChangeCar,
-            showEditDates,editDatesBooking,editDatesForm,editingDates,openEditDates,confirmEditDates,
+            showEditDates,editDatesBooking,editDatesForm,editingDates,openEditDates,confirmEditDates,cancelBooking,
             calYear,calMonth,calMonthLabel,calDays,prevMonth,nextMonth,isToday,isSameDay,
             selectedCalDay,selectCalDay,getDayBookings,toDateStr
         };
