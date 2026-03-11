@@ -607,6 +607,25 @@ createApp({
                         createdAt:new Date().toISOString()
                     });
                 }
+// ✅ แจ้ง GAS ให้ส่ง LINE ขออนุมัติผู้บริหาร (เฉพาะส่วนตัว)
+        if (form.usageType === 'Personal') {
+          const GAS_URL = 'https://script.google.com/macros/s/AKfycbxrBmEkW479Om9E9aTFQIdiwiXjLTOSRf0YrCI3_dSRBbyu7XKlxvHH-NpmKn_ITURF/exec';
+          fetch(GAS_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+              bookingId: bId,
+              userId:    profile.value?.userId || 'unknown',
+              user:      form.username,
+              carPlate:  sel.plate,
+              carModel:  sel.model,
+              carColor:  sel.color,
+              start:     form.start,
+              end:       form.end,
+              usageType: form.usageType,
+              purpose:   form.purpose
+            })
+          }).catch(e => console.warn('GAS notify failed:', e));
+        }
                 await fetchBookings();
                 showSuccess.value=true;
             } catch(e){alert('เกิดข้อผิดพลาด: '+e.message);}
